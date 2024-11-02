@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+outputs/novels/*
+outputs/analytics/*
+outputs/metadata/*
+!outputs/novels/.gitkeep
+!outputs/analytics/.gitkeep
+!outputs/metadata/.gitkeep
+*.log
+story_analytics.png
+book_metadata.json
+ai_response_debug.txt
+generation_metrics.log
+novel_*.md
+
+# OS specific
+.DS_Store
+Thumbs.db
