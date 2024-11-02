@@ -41,8 +41,15 @@ NovelGenerator is a sophisticated Python tool that leverages advanced AI models 
 # One-line installation
 curl -sSL https://raw.githubusercontent.com/KazKozDev/NovelGenerator/main/install.sh | bash
 
-# Generate your first book
-novel-generator --topic "Space Adventure" --chapters 5 --style cinematic
+# Or clone and install manually
+git clone https://github.com/KazKozDev/NovelGenerator.git
+cd NovelGenerator
+
+# Run directly
+python3 novel_generator.py
+
+# Or with arguments
+python3 novel_generator.py --topic "Space Adventure" --chapters 5 --style cinematic
 ```
 
 ## 🔧 Installation
@@ -137,6 +144,15 @@ book = generator.generate_book(
 )
 ```
 
+### Command Line Usage
+```bash
+# Basic usage
+python3 novel_generator.py
+
+# With arguments
+python3 novel_generator.py --topic "Space Adventure" --chapters 5 --style cinematic
+```
+
 ### Advanced Configuration
 ```python
 # Custom configuration
@@ -217,9 +233,6 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 ```bash
 # Install development dependencies
 pip install -r requirements-dev.txt
-
-# Run tests
-pytest
 
 # Check code style
 black .
