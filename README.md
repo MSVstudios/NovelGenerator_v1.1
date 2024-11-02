@@ -2,27 +2,25 @@
 
 <div align="center">
 
-![NovelGenerator Banner](assets/banner.svg)
+<img src="Banner.jpg" alt="NovelGenerator Banner" width="800"/>
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Ollama](https://img.shields.io/badge/LLM-Ollama-orange.svg)](https://ollama.ai)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/kazkozdev/NovelGenerator/blob/master/LICENSE)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/kazkozdev/NovelGenerator/graphs/commit-activity)
-[![GitHub issues](https://img.shields.io/github/issues/kazkozdev/NovelGenerator)](https://github.com/kazkozdev/NovelGenerator/issues)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/KazKozDev/NovelGenerator/blob/master/LICENSE)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/KazKozDev/NovelGenerator/graphs/commit-activity)
+[![GitHub issues](https://img.shields.io/github/issues/KazKozDev/NovelGenerator)](https://github.com/KazKozDev/NovelGenerator/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://makeapullrequest.com)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Tests](https://github.com/kazkozdev/NovelGenerator/workflows/Tests/badge.svg)](https://github.com/kazkozdev/NovelGenerator/actions)
 
 <h2>AI-Powered Fiction Book Generator 📚</h2>
 
-[Features](#features) •
-[Quick Start](#quick-start) •
-[Installation](#installation) •
-[Usage](#usage) •
-[Documentation](#documentation) •
-[Contributing](#contributing) •
-[Examples](#examples) •
-[FAQ](#faq)
+[Features](#-features) •
+[Quick Start](#%EF%B8%8F-quick-start) •
+[Installation](#-installation) •
+[Usage](#-usage) •
+[Examples](#-examples) •
+[FAQ](#-faq) •
+[Contributing](#-contributing)
 
 </div>
 
@@ -41,7 +39,7 @@ NovelGenerator is a sophisticated Python tool that leverages advanced AI models 
 
 ```bash
 # One-line installation
-curl -sSL https://raw.githubusercontent.com/kazkozdev/NovelGenerator/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/KazKozDev/NovelGenerator/main/install.sh | bash
 
 # Generate your first book
 novel-generator --topic "Space Adventure" --chapters 5 --style cinematic
@@ -70,7 +68,7 @@ ollama pull qwen2.5:32b
 3. Clone and setup NovelGenerator:
 ```bash
 # Clone repository
-git clone https://github.com/kazkozdev/NovelGenerator.git
+git clone https://github.com/KazKozDev/NovelGenerator.git
 cd NovelGenerator
 
 # Create virtual environment
@@ -242,9 +240,9 @@ A: Yes, but we recommend thorough review and editing before commercial use.
 
 ## 📫 Support and Contact
 
-- [Report a Bug](https://github.com/kazkozdev/NovelGenerator/issues/new?labels=bug)
-- [Request a Feature](https://github.com/kazkozdev/NovelGenerator/issues/new?labels=enhancement)
-- [Ask a Question](https://github.com/kazkozdev/NovelGenerator/issues/new?labels=question)
+- [Report a Bug](https://github.com/KazKozDev/NovelGenerator/issues/new?labels=bug)
+- [Request a Feature](https://github.com/KazKozDev/NovelGenerator/issues/new?labels=enhancement)
+- [Ask a Question](https://github.com/KazKozDev/NovelGenerator/issues/new?labels=question)
 
 ## 📜 License
 
@@ -259,7 +257,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 <div align="center">
-Made with ❤️ by kazkozdev
+Made with ❤️ by KazKozDev
 
-[GitHub](https://github.com/kazkozdev) • [Report Bug](https://github.com/kazkozdev/NovelGenerator/issues/new?labels=bug) • [Request Feature](https://github.com/kazkozdev/NovelGenerator/issues/new?labels=enhancement)
+[GitHub](https://github.com/KazKozDev) • [Report Bug](https://github.com/KazKozDev/NovelGenerator/issues/new?labels=bug) • [Request Feature](https://github.com/KazKozDev/NovelGenerator/issues/new?labels=enhancement)
 </div>
