@@ -198,8 +198,6 @@ Anton squeezed Garry's hand, meeting his gaze with unwavering support.  "Togethe
 
 Chapter 3: Chapter 3
 
-## Chapter 3: A Shadow in the Woods
-
 Garry stumbled, his lungs burning like bellows fueled by fire. The ancient forest seemed to press in on him, each inhale a rasping struggle against the stillness. He glanced back at Anton, whose face was illuminated by a flickering tapestry of fireflies. Concern etched itself onto Anton's brow, but beneath it, Garry saw an unwavering strength.
 
 "We should rest," Anton murmured, his voice a low rumble that resonated with the calming rhythm of the woods. A steadying hand settled on Garry's arm, sending a shiver down his spine. The touch was both comforting and unsettling – a reminder of the unfamiliar intimacy blossoming between them.
