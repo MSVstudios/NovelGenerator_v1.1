@@ -372,7 +372,7 @@ MIT
 
 ## 🙏 Acknowledgments
 
-Built with Ollama and Gemma 2
+Built with Ollama and Gemma 2:27b
 
 ---
 <div align="center">
