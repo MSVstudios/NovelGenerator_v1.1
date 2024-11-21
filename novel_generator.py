@@ -807,60 +807,91 @@ Provide ONLY the JSON response, no other text.
         context = self._build_chapter_context(chapter_number, chapter_summary)
         prompt = self._build_chapter_prompt(context)
         
-        # First attempt
-        content = self.generate_response(prompt)
+        MAX_RETRIES = 3  # Константа для максимального числа попыток
         
-        # Validate content
-        word_count = len(content.split())
-        if word_count < self.min_words:
-            self.logger.warning(f"First attempt too short ({word_count} words). Retrying...")
+        for attempt in range(MAX_RETRIES):
+            try:
+                # First attempt
+                response = self.generate_response(prompt)
+                
+                # Очищаем ответ от маркеров форматирования
+                cleaned_response = response.replace('```json', '').replace('```', '').strip()
+                
+                # Проверяем, что ответ не пустой
+                if not cleaned_response:
+                    raise ValueError("Empty response received")
+                    
+                # Пытаемся распарсить JSON
+                try:
+                    chapter_data = json.loads(cleaned_response)
+                except json.JSONDecodeError:
+                    # Если не получилось распарсить JSON, создаем простую структуру
+                    chapter_data = {"content": cleaned_response}
+                    
+                # Получаем контент с проверкой
+                content = chapter_data.get("content", "")
+                if not content:
+                    raise ValueError("No content in response")
+                    
+                # Подсчет слов
+                word_count = len(content.split())
+                
+                if word_count < self.min_words:
+                    self.logger.warning(f"Attempt {attempt + 1}: Content too short ({word_count} words). Retrying...")
+                    
+                    improvement_prompt = f"""
+                    Expand this chapter while maintaining consistency:
+                    Previous version:
+                    {content}
+                    
+                    Chapter Summary: {chapter_summary}
+                    Current Context:
+                    {json.dumps(context, indent=2)}
+                    
+                    Requirements:
+                    1. Expand to at least {self.min_words} words
+                    2. Maintain all plot continuity
+                    3. Keep character locations and movements logical
+                    4. Advance relevant plot threads
+                    5. Show character development
+                    
+                    Provide ONLY the expanded content, no JSON formatting.
+                    """
+                    
+                    continue  # Пробуем еще раз
+                
+                # Parse scenes and validate continuity
+                scenes = self._parse_scenes(content)
+                
+                # Create chapter
+                chapter = Chapter(
+                    number=chapter_number,
+                    title=f"Chapter {chapter_number}",
+                    summary=chapter_summary,
+                    scenes=scenes,
+                    word_count=word_count,
+                    active_plot_threads=self._extract_active_plot_threads(content),
+                    character_developments=self._extract_character_developments_from_content(content)
+                )
+                
+                # Update world state
+                self._update_world_state(chapter)
+                
+                # Store chapter
+                self.book.chapters.append(chapter)
+                
+                self.logger.info(f"Chapter {chapter_number} completed: {word_count} words")
+                return chapter
             
-            improvement_prompt = f"""
-            Expand this chapter while maintaining consistency:
-            
-            Previous version:
-            {content}
-            
-            Chapter Summary: {chapter_summary}
-            Current Context:
-            {json.dumps(context, indent=2)}
-            
-            Requirements:
-            1. Expand to at least {self.min_words} words
-            2. Maintain all plot continuity
-            3. Keep character locations and movements logical
-            4. Advance relevant plot threads
-            5. Show character development
-            """
-            
-            content = self.generate_response(improvement_prompt)
-            word_count = len(content.split())
-            
-        # Parse scenes and validate continuity
-        scenes = self._parse_scenes(content)
-        if not self._validate_chapter_continuity(scenes, context):
-            self.logger.warning("Continuity issues detected. Attempting fix...")
-            scenes = self._fix_continuity_issues(scenes, context)
-            
-        # Create chapter
-        chapter = Chapter(
-            number=chapter_number,
-            title=f"Chapter {chapter_number}",
-            summary=chapter_summary,
-            scenes=scenes,
-            word_count=word_count,
-            active_plot_threads=self._extract_active_plot_threads(content),
-            character_developments=self._extract_character_developments_from_content(content)
-        )
-        
-        # Update world state
-        self._update_world_state(chapter)
-        
-        # Store chapter
-        self.book.chapters.append(chapter)
-        
-        self.logger.info(f"Chapter {chapter_number} completed: {word_count} words")
-        return chapter
+            except Exception as e:
+                self.logger.error(f"Attempt {attempt + 1} failed: {str(e)}")
+                if attempt == MAX_RETRIES - 1:
+                    raise ValueError(f"Failed to generate chapter {chapter_number} after {MAX_RETRIES} attempts")
+                    
+                # Небольшая пауза перед следующей попыткой
+                time.sleep(2 ** attempt)  # Экспоненциальная задержка
+                
+        raise ValueError(f"Failed to generate chapter {chapter_number}")
 
     def export_book(self, output_dir: str = None) -> str:
         """Export book with complete manuscript and supporting files"""
