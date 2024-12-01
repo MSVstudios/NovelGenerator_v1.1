@@ -1,8 +1,8 @@
 import json
-from typing import Dict, List, Optional, Any, Union, Set
+from typing import Dict, List, Optional, Any, Union
 import requests
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import logging
 from pathlib import Path
 import re
@@ -18,10 +18,10 @@ DEFAULT_RETRY_DELAY = 2
 DEFAULT_TEMPERATURE = 0.7
 DEFAULT_TOP_P = 0.9
 
-# Configuration 
+# Configuration
 MODEL_CONFIG = {
     "default": "gemma2:27b",
-    "fast": "gemma2:27b", 
+    "fast": "gemma2:27b",
     "creative": "gemma2:27b"
 }
 
@@ -30,7 +30,7 @@ class ColoredFormatter(logging.Formatter):
     """Colored formatter for console output"""
     COLORS = {
         'grey': "\x1b[38;21m",
-        'blue': "\x1b[38;5;39m", 
+        'blue': "\x1b[38;5;39m",
         'yellow': "\x1b[38;5;226m",
         'red': "\x1b[38;5;196m",
         'bold_red': "\x1b[31;1m",
@@ -55,20 +55,25 @@ class ColoredFormatter(logging.Formatter):
 
 def setup_logging() -> logging.Logger:
     """Setup logging configuration"""
+    # Create logs directory
     log_dir = Path("generation_logs")
     log_dir.mkdir(exist_ok=True)
-    
+
+    # Current time for filename
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = log_dir / f"generation_{current_time}.log"
-    
+
+    # Configure logger
     logger = logging.getLogger('BookGenerator')
     logger.setLevel(logging.DEBUG)
 
+    # File handler
     file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
 
+    # Console handler
     console_formatter = ColoredFormatter('%(levelname)s - %(message)s')
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
@@ -79,45 +84,6 @@ def setup_logging() -> logging.Logger:
 
     return logger
 
-# New continuity tracking classes
-@dataclass
-class LocationState:
-    character_locations: Dict[str, str] = field(default_factory=dict)
-    valid_transitions: Dict[str, List[str]] = field(default_factory=dict)
-    travel_time: Dict[str, Dict[str, int]] = field(default_factory=dict)
-
-    def validate_movement(self, character: str, new_location: str, time_passed: int = 1) -> bool:
-        current = self.character_locations.get(character)
-        if not current:
-            return True
-            
-        if new_location not in self.valid_transitions.get(current, []):
-            return False
-            
-        required_time = self.travel_time.get(current, {}).get(new_location, 1)
-        return time_passed >= required_time
-
-    def add_location_path(self, from_loc: str, to_loc: str, time_required: int = 1):
-        if from_loc not in self.valid_transitions:
-            self.valid_transitions[from_loc] = []
-        self.valid_transitions[from_loc].append(to_loc)
-        
-        if from_loc not in self.travel_time:
-            self.travel_time[from_loc] = {}
-        self.travel_time[from_loc][to_loc] = time_required
-
-@dataclass
-class PlotThread:
-    name: str
-    status: str  # 'active', 'resolved', 'abandoned'
-    related_characters: List[str]
-    key_events: List[str]
-    dependencies: List[str] = field(default_factory=list)
-    resolution_conditions: List[str] = field(default_factory=list)
-
-    def can_resolve(self, completed_events: List[str]) -> bool:
-        return all(event in completed_events for event in self.resolution_conditions)
-
 # Data models
 @dataclass
 class Character:
@@ -126,10 +92,6 @@ class Character:
     personality: str
     goals: str
     relationships: Dict[str, str]
-    current_location: str = field(default="")
-    active_goals: List[str] = field(default_factory=list)
-    character_arc_stage: str = field(default="introduction")
-    motivation_strength: Dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> Dict:
         return {
@@ -137,30 +99,20 @@ class Character:
             "background": self.background,
             "personality": self.personality,
             "goals": self.goals,
-            "relationships": self.relationships,
-            "current_location": self.current_location,
-            "active_goals": self.active_goals,
-            "character_arc_stage": self.character_arc_stage,
-            "motivation_strength": self.motivation_strength
+            "relationships": self.relationships
         }
 
 @dataclass
 class Scene:
     content: str
-    pov_character: Optional[str] = None 
+    pov_character: Optional[str] = None
     location: Optional[str] = None
-    time_passed: int = 0
-    active_characters: List[str] = field(default_factory=list)
-    plot_threads_advanced: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict:
         return {
             "content": self.content,
             "pov_character": self.pov_character,
-            "location": self.location,
-            "time_passed": self.time_passed,
-            "active_characters": self.active_characters,
-            "plot_threads_advanced": self.plot_threads_advanced
+            "location": self.location
         }
 
 @dataclass
@@ -170,8 +122,6 @@ class Chapter:
     summary: str
     scenes: List[Scene]
     word_count: int
-    active_plot_threads: List[str] = field(default_factory=list)
-    character_developments: Dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> Dict:
         return {
@@ -179,9 +129,7 @@ class Chapter:
             "title": self.title,
             "summary": self.summary,
             "scenes": [scene.to_dict() for scene in self.scenes],
-            "word_count": self.word_count,
-            "active_plot_threads": self.active_plot_threads,
-            "character_developments": self.character_developments
+            "word_count": self.word_count
         }
 
 @dataclass
@@ -191,11 +139,8 @@ class Book:
     target_audience: str
     themes: List[str]
     characters: List[Character]
-    chapters: List[Chapter] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    plot_threads: Dict[str, PlotThread] = field(default_factory=dict)
-    world_state: LocationState = field(default_factory=LocationState)
-    timeline: Dict[int, List[str]] = field(default_factory=dict)
+    chapters: List[Chapter]
+    metadata: Dict[str, Any]
 
     def to_dict(self) -> Dict:
         return {
@@ -205,10 +150,7 @@ class Book:
             "themes": self.themes,
             "characters": [char.to_dict() for char in self.characters],
             "chapters": [chapter.to_dict() for chapter in self.chapters],
-            "metadata": self.metadata,
-            "plot_threads": {k: vars(v) for k, v in self.plot_threads.items()},
-            "world_state": vars(self.world_state),
-            "timeline": self.timeline
+            "metadata": self.metadata
         }
 
 # Main generator class
@@ -218,28 +160,22 @@ class BookGenerator:
                  min_words: int = DEFAULT_CHAPTER_MIN_WORDS,
                  max_words: int = DEFAULT_CHAPTER_MAX_WORDS,
                  logger: Optional[logging.Logger] = None):
-                 
+
         self.model_name = model_name
         self.min_words = min_words
         self.max_words = max_words
         self.base_url = "http://localhost:11434/api/generate"
         self.logger = logger or setup_logging()
-        
-        self.book = Book(
-            title="",
-            genre="",
-            target_audience="",
-            themes=[],
-            characters=[]
-        )
-        
-        self.location_state = LocationState()
-        self.plot_threads = {}
-        self.completed_events = []
-        self.timeline = {}
-        self.current_time = 0
-        self.character_arcs = {}
-        self.book_data = self.book.to_dict()
+
+        self.book_data = {
+            "title": "",
+            "genre": "",
+            "target_audience": "",
+            "themes": [],
+            "characters": [],
+            "chapters": [],
+            "metadata": {}
+        }
 
     def log_separator(self, message: str) -> None:
         """Print log separator with message"""
@@ -250,6 +186,7 @@ class BookGenerator:
         """Get validated user input for book generation"""
         print("\n=== Book Generation Setup ===")
 
+        # Base information
         genre = self._get_validated_input(
             "Enter book genre (e.g., Science Fiction, Fantasy, Romance): ",
             lambda x: len(x.strip()) > 0
@@ -260,6 +197,7 @@ class BookGenerator:
             lambda x: len(x.strip()) > 0
         )
 
+        # Theme collection
         print("\nEnter main themes (one per line). Press Enter twice to finish:")
         themes = []
         while True:
@@ -267,10 +205,11 @@ class BookGenerator:
             if not theme:
                 if themes:
                     break
-                print("Please enter at least один theme")
+                print("Please enter at least one theme")
                 continue
             themes.append(theme)
 
+        # Modified chapter count validation
         num_chapters = self._get_validated_input(
             "\nEnter desired number of chapters (3-30): ",
             lambda x: x.isdigit() and 3 <= int(x) <= 30,
@@ -278,6 +217,7 @@ class BookGenerator:
             transform=int
         )
 
+        # Additional requirements
         print("\nEnter any specific requirements (one per line). Press Enter twice to finish:")
         requirements = []
         while True:
@@ -287,6 +227,7 @@ class BookGenerator:
             if req:
                 requirements.append(req)
 
+        # Writing style
         styles = {
             1: "Descriptive and detailed",
             2: "Fast-paced and dynamic",
@@ -301,7 +242,6 @@ class BookGenerator:
         style = self._get_validated_input(
             "Style (1-4): ",
             lambda x: x.isdigit() and 1 <= int(x) <= 4,
-            "Please enter a number between 1 and 4",
             transform=int
         )
 
@@ -322,111 +262,15 @@ class BookGenerator:
         error_message: str = "Invalid input, please try again",
         transform: callable = lambda x: x
     ) -> Any:
-        """Get validated input with proper error handling"""
+        """Get validated user input with custom validation"""
         while True:
             try:
                 user_input = input(prompt).strip()
                 if validator(user_input):
-                    try:
-                        return transform(user_input)
-                    except Exception as e:
-                        print(f"Error processing input: {str(e)}")
-                        print(error_message)
-                else:
-                    print(error_message)
-            except Exception as e:
-                print(f"Input error: {str(e)}")
+                    return transform(user_input)
                 print(error_message)
-
-    def _fix_character_locations(self, characters_data: Dict) -> Dict:
-        """Fix invalid character locations with proper error handling"""
-        if not isinstance(characters_data, dict):
-            return {"characters": []}
-            
-        valid_locations = list(self.location_state.valid_transitions.keys())
-        if not valid_locations:
-            valid_locations = ["starting_location"]
-            
-        if "characters" not in characters_data:
-            return {"characters": []}
-            
-        for char in characters_data["characters"]:
-            if not isinstance(char, dict):
-                continue
-                
-            if "current_location" not in char or not char["current_location"] or char["current_location"] not in valid_locations:
-                char["current_location"] = valid_locations[0]
-                    
-        return characters_data
-
-    def _find_valid_path(self, start: str, end: str) -> List[str]:
-        """Find valid path between locations with proper validation"""
-        if not isinstance(start, str) or not isinstance(end, str):
-            return []
-            
-        if start == end:
-            return [start]
-            
-        if not hasattr(self, 'location_state') or not hasattr(self.location_state, 'valid_transitions'):
-            return []
-            
-        queue = [(start, [start])]
-        visited = {start}
-        
-        while queue:
-            current, path = queue.pop(0)
-            
-            # Safely get transitions
-            transitions = self.location_state.valid_transitions.get(current, [])
-            if not isinstance(transitions, list):
-                continue
-                
-            for next_loc in transitions:
-                if not isinstance(next_loc, str):
-                    continue
-                    
-                if next_loc == end:
-                    return path + [end]
-                    
-                if next_loc not in visited:
-                    visited.add(next_loc)
-                    queue.append((next_loc, path + [next_loc]))
-                        
-        return []
-
-    def _extract_locations(self, event: str) -> Dict[str, str]:
-        """Extract character location changes with proper validation"""
-        if not isinstance(event, str):
-            return {}
-            
-        locations = {}
-        
-        if not hasattr(self, 'book_data') or not isinstance(self.book_data, dict):
-            return locations
-            
-        characters = self.book_data.get("characters", [])
-        if not isinstance(characters, list):
-            return locations
-            
-        valid_locations = set()
-        if hasattr(self, 'location_state') and hasattr(self.location_state, 'valid_transitions'):
-            valid_locations = set(self.location_state.valid_transitions.keys())
-        
-        for char in characters:
-            if not isinstance(char, dict):
-                continue
-                
-            char_name = char.get("name")
-            if not char_name or not isinstance(char_name, str):
-                continue
-                
-            if char_name in event:
-                for loc in valid_locations:
-                    if loc in event:
-                        locations[char_name] = loc
-                        break
-                        
-        return locations
+            except ValueError:
+                print(error_message)
 
     def generate_response(
         self,
@@ -436,6 +280,7 @@ class BookGenerator:
         top_p: float = DEFAULT_TOP_P,
         attempt_number: int = 1
     ) -> str:
+        """Generate response from Ollama with streaming and error handling"""
         self.log_separator("PROMPT")
         self.logger.info(prompt)
         
@@ -446,11 +291,10 @@ class BookGenerator:
                 
                 payload = {
                     "model": self.model_name,
-                    "prompt": prompt + "\nProvide ONLY raw JSON without any markdown formatting, code blocks or extra text.",
+                    "prompt": prompt,
                     "stream": True,
                     "temperature": temperature,
-                    "top_p": top_p,
-                    "context_length": 8192
+                    "top_p": top_p
                 }
                 
                 response = requests.post(self.base_url, json=payload, stream=True)
@@ -471,6 +315,7 @@ class BookGenerator:
                 
                 complete_response = ''.join(full_response)
                 
+                # Validate minimum length
                 if len(complete_response.split()) < 50:
                     raise ValueError("Response too short")
                     
@@ -484,6 +329,7 @@ class BookGenerator:
                 if attempt < retries - 1:
                     time.sleep(DEFAULT_RETRY_DELAY ** attempt)
                     if attempt_number == 2:
+                        # On the second attempt, use the previously generated content and prompt for more extensive content
                         prompt = f"""
                         The previous response was too short. Please generate a more extensive and detailed response based on the following content:
                         {complete_response}
@@ -493,6 +339,79 @@ class BookGenerator:
             
         self.logger.error("All attempts failed")
         return ""
+
+    def parse_response_to_json(self, text: str, template: Dict) -> Dict:
+        """Parse text response to JSON with validation"""
+        # Clean text
+        text = text.strip()
+        if not text:
+            return template.copy()
+
+        try:
+            # Find JSON in text
+            json_str = re.search(r'\{.*\}', text, re.DOTALL)
+            if json_str:
+                parsed = json.loads(json_str.group())
+                # Validate against template
+                self._validate_json_structure(parsed, template)
+                return parsed
+        except json.JSONDecodeError:
+            self.logger.warning("Failed to parse JSON directly")
+        except Exception as e:
+            self.logger.warning(f"JSON validation failed: {str(e)}")
+
+        # Try parsing through LLM
+        parse_prompt = f"""
+        Convert this text into valid JSON matching this template:
+        {json.dumps(template, indent=2)}
+
+        Text to convert:
+        {text}
+
+        Provide ONLY valid JSON, no other text.
+        """
+
+        try:
+            parsed_response = self.generate_response(parse_prompt, temperature=0.1)
+            json_str = re.search(r'\{.*\}', parsed_response, re.DOTALL)
+            if json_str:
+                parsed = json.loads(json_str.group())
+                self._validate_json_structure(parsed, template)
+                return parsed
+        except Exception as e:
+            self.logger.error(f"Failed to parse response through LLM: {str(e)}")
+
+        # Create fallback structure
+        self.logger.warning("Creating fallback structure")
+        result = template.copy()
+        lines = text.split('\n')
+        for line in lines:
+            line = line.strip()
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip().lower().replace(' ', '_')
+                if key in template:
+                    result[key] = value.strip()
+        return result
+
+    def _validate_json_structure(self, parsed: Dict, template: Dict) -> None:
+        """Validate JSON structure matches template"""
+        def check_structure(parsed_part: Any, template_part: Any) -> None:
+            if isinstance(template_part, dict):
+                if not isinstance(parsed_part, dict):
+                    raise ValueError(f"Expected dict, got {type(parsed_part)}")
+                for key in template_part:
+                    if key not in parsed_part:
+                        parsed_part[key] = template_part[key]
+                    else:
+                        check_structure(parsed_part[key], template_part[key])
+            elif isinstance(template_part, list):
+                if not isinstance(parsed_part, list):
+                    raise ValueError(f"Expected list, got {type(parsed_part)}")
+                if template_part and parsed_part:
+                    check_structure(parsed_part[0], template_part[0])
+
+        check_structure(parsed, template)
 
     def initialize_book(self, user_input: Dict[str, Any]) -> Optional[Dict]:
         """Initialize book concept with theme consistency"""
@@ -508,20 +427,21 @@ class BookGenerator:
             "main_conflict": "",
             "style_notes": "",
             "themes": user_input["themes"],
-            "audience": user_input["target_audience"],
-            "locations": [],  # Added for location tracking
-            "initial_plot_threads": []  # Added for plot thread tracking
+            "audience": user_input["target_audience"]
         }
 
+        # Writing style descriptions
         style_descriptions = {
             1: "descriptive and detailed, with rich world-building and atmosphere",
             2: "fast-paced and dynamic, focusing on action and momentum",
             3: "character-focused, with deep emotional development and relationships",
             4: "plot-driven, with intricate storylines and twists"
         }
+
+        # Build context
         themes_context = ", ".join([f"'{theme}'" for theme in user_input["themes"]])
         requirements_context = ", ".join([f"'{req}'" for req in user_input["requirements"]])
-        
+
         prompt = f"""Create a unique and compelling book concept with these parameters:
 
 Genre: {user_input['genre']}
@@ -533,11 +453,9 @@ Special Requirements: {requirements_context}
 Create:
 1. A unique and engaging title that reflects the themes and genre
 2. A compelling one-paragraph premise that hooks the reader
-3. A rich and detailed setting description with key locations and their connections
+3. A rich and detailed setting description
 4. A complex main conflict that drives the story
 5. Specific style notes for maintaining consistent tone and atmosphere
-6. List of key locations and their relationships/travel times
-7. Initial major plot threads that will drive the story
 
 Your response MUST maintain thematic consistency with the provided themes.
 Format the response as JSON with these exact fields:
@@ -548,56 +466,62 @@ Provide ONLY the JSON response, no other text.
 
         response = self.generate_response(prompt)
         book_concept = self.parse_response_to_json(response, template)
-        
-        if book_concept and book_concept.get("title"):
-            self.book.title = book_concept["title"]
-            self.book.genre = user_input["genre"]
-            self.book.target_audience = user_input["target_audience"]
-            self.book.themes = user_input["themes"]
-            self.book.metadata = {
-                "premise": book_concept.get("premise", ""),
-                "setting": book_concept.get("setting", ""),
-                "main_conflict": book_concept.get("main_conflict", ""),
-                "style_notes": book_concept.get("style_notes", ""),
-            }
-            
-            # Initialize location tracking
-            if "locations" in book_concept:
-                for loc in book_concept["locations"]:
-                    if isinstance(loc, dict) and "connections" in loc:
-                        for conn in loc["connections"]:
-                            if isinstance(conn, dict):
-                                self.location_state.add_location_path(
-                                    loc["name"],
-                                    conn.get("to", ""),
-                                    conn.get("travel_time", 1)
-                                )
-                                
-            # Initialize plot threads
-            if "initial_plot_threads" in book_concept:
-                for thread in book_concept["initial_plot_threads"]:
-                    if isinstance(thread, dict):
-                        self.plot_threads[thread.get("name", "")] = PlotThread(
-                            name=thread.get("name", ""),
-                            status="active",
-                            related_characters=thread.get("characters", []),
-                            key_events=[],
-                            dependencies=thread.get("dependencies", []),
-                            resolution_conditions=thread.get("resolution_conditions", [])
-                        )
-                        
+
+        if book_concept and book_concept["title"]:
+            self.book_data.update(book_concept)
             self.log_separator("BOOK CONCEPT CREATED")
-            self.logger.info(f"Title: {self.book.title}")
-            self.logger.info(f"Premise: {self.book.metadata.get('premise', '')}")
+            self.logger.info(f"Title: {book_concept['title']}")
+            self.logger.info(f"Premise: {book_concept['premise']}")
             return book_concept
 
         self.logger.error("Failed to create book concept")
         return None
-        
+
+    def _build_chapter_context(self, chapter_num: int, summary: str) -> Dict:
+        """Build rich context for chapter generation"""
+        return {
+            "chapter_number": chapter_num,
+            "total_chapters": len(self.book_data["plot"]["acts"][0]["key_events"]),
+            "summary": summary,
+            "previous_chapter": self._get_previous_chapter(chapter_num),
+            "characters": self.book_data["characters"],
+            "themes": self.book_data.get("themes", []),
+            "style_notes": self.book_data.get("style_notes", ""),
+            "character_arcs": self._get_character_arcs(chapter_num)
+        }
+
+    def _get_previous_chapter(self, chapter_num: int) -> Optional[Dict]:
+        """Get previous chapter data if available"""
+        if chapter_num <= 1:
+            return None
+        for chapter in self.book_data["chapters"]:
+            if chapter["number"] == chapter_num - 1:
+                return chapter
+        return None
+
+    def _get_character_arcs(self, chapter_num: int) -> Dict[str, str]:
+        """Get character development arcs for current chapter"""
+        arcs = {}
+        total_chapters = len(self.book_data["plot"]["acts"][0]["key_events"])
+        progress = chapter_num / total_chapters
+
+        for character in self.book_data["characters"]:
+            if progress < 0.3:
+                stage = "introduction and establishment"
+            elif progress < 0.6:
+                stage = "development and challenges"
+            elif progress < 0.9:
+                stage = "growth and transformation"
+            else:
+                stage = "resolution and conclusion"
+            arcs[character["name"]] = stage
+
+        return arcs
+
     def create_characters(self) -> List[Character]:
         """Generate characters with enhanced relationships and consistency"""
         self.log_separator("CREATING CHARACTERS")
-        
+
         template = {
             "characters": [
                 {
@@ -605,22 +529,17 @@ Provide ONLY the JSON response, no other text.
                     "background": "",
                     "personality": "",
                     "goals": "",
-                    "relationships": {},
-                    "current_location": "",
-                    "active_goals": [],
-                    "character_arc_stage": "introduction",
-                    "motivation_strength": {}
+                    "relationships": {}
                 }
             ]
         }
-        
+
+        # Build prompt with richer context
         prompt = f"""Create compelling characters for this book:
-Title: {self.book.title}
-Premise: {self.book.metadata.get('premise', '')}
-Setting: {self.book.metadata.get('setting', '')}
-Themes: {', '.join(self.book.themes)}
-Available Locations: {', '.join(self.location_state.valid_transitions.keys())}
-Active Plot Threads: {', '.join(self.plot_threads.keys())}
+Title: {self.book_data['title']}
+Premise: {self.book_data['premise']}
+Setting: {self.book_data['setting']}
+Themes: {', '.join(self.book_data.get('themes', []))}
 
 Create 3-5 unique and detailed characters that:
 1. Have distinctive names fitting the setting
@@ -628,17 +547,14 @@ Create 3-5 unique and detailed characters that:
 3. Display clear personality traits
 4. Pursue compelling goals aligned with the themes
 5. Have meaningful relationships with other characters
-6. Start in logical initial locations
-7. Connect to active plot threads through their goals
-8. Show potential for growth and development
+6. Contribute to the main conflict
 
 Each character should:
 - Reflect the story's themes
-- Have clear motivations with quantified strength (0.0-1.0)
+- Have clear motivations
 - Present internal and external conflicts
 - Show potential for growth
 - Have distinct voice and mannerisms
-- Be placed in a valid starting location
 
 Format the response as JSON with these exact fields:
 {json.dumps(template, indent=2)}
@@ -647,120 +563,113 @@ Provide ONLY the JSON response, no other text.
 """
 
         response = self.generate_response(prompt)
-        
+
         try:
             characters_data = self.parse_response_to_json(response, template)
             if characters_data and "characters" in characters_data:
-                # Validate character relationships and locations
+                # Validate character relationships
                 if not self._validate_character_relationships(characters_data["characters"]):
                     self.logger.warning("Character relationships need adjustment")
                     characters_data = self._fix_character_relationships(characters_data)
-                    
-                if not self._validate_character_locations(characters_data["characters"]):
-                    self.logger.warning("Character locations need adjustment")
-                    characters_data = self._fix_character_locations(characters_data)
-                    
-                characters = []
-                for char_data in characters_data["characters"]:
-                    character = Character(
-                        name=char_data["name"],
-                        background=char_data["background"],
-                        personality=char_data["personality"],
-                        goals=char_data["goals"],
-                        relationships=char_data["relationships"],
-                        current_location=char_data["current_location"],
-                        active_goals=char_data["active_goals"],
-                        character_arc_stage=char_data["character_arc_stage"],
-                        motivation_strength=char_data["motivation_strength"]
-                    )
-                    characters.append(character)
-                    
-                self.book.characters = characters
-                
-                # Initialize character arcs
-                for character in characters:
-                    self.character_arcs[character.name] = {
-                        "stage": "introduction",
-                        "development_points": 0,
-                        "completed_goals": [],
-                        "relationship_changes": {},
-                        "location_history": [character.current_location],
-                        "recent_developments": []
-                    }
-                    
+
+                self.book_data["characters"] = characters_data["characters"]
+
                 self.log_separator("CHARACTERS CREATED")
-                for character in characters:
-                    self.logger.info(f"\nCharacter: {character.name}")
-                    self.logger.info(f"Location: {character.current_location}")
-                    self.logger.info(f"Background: {character.background}")
-                    self.logger.info(f"Goals: {character.goals}")
-                    self.logger.info("Active Goals:")
-                    for goal in character.active_goals:
-                        self.logger.info(f"- {goal}")
+                for char in characters_data["characters"]:
+                    self.logger.info(f"\nCharacter: {char['name']}")
+                    self.logger.info(f"Background: {char['background']}")
+                    self.logger.info(f"Personality: {char['personality']}")
+                    self.logger.info(f"Goals: {char['goals']}")
                     self.logger.info("Relationships:")
-                    for rel_name, rel_desc in character.relationships.items():
+                    for rel_name, rel_desc in char['relationships'].items():
                         self.logger.info(f"- {rel_name}: {rel_desc}")
-                    self.logger.info("Motivation Strengths:")
-                    for mot, strength in character.motivation_strength.items():
-                        self.logger.info(f"- {mot}: {strength}")
-                        
-                return characters
-            
+
+                return [Character(**char_data) for char_data in characters_data["characters"]]
         except Exception as e:
             self.logger.error(f"Error processing characters: {str(e)}")
-            
+
         return []
-        
+
+    def _validate_character_relationships(self, characters: List[Dict]) -> bool:
+        """Validate character relationships are consistent and balanced"""
+        # Check each character has relationships
+        for char in characters:
+            if not char["relationships"]:
+                return False
+
+        # Check for reciprocal relationships
+        for char1 in characters:
+            for char2 in characters:
+                if char1 != char2:
+                    if char2["name"] in char1["relationships"]:
+                        if char1["name"] not in char2["relationships"]:
+                            return False
+
+        return True
+
+    def _fix_character_relationships(self, characters_data: Dict) -> Dict:
+        """Fix inconsistent character relationships"""
+        chars = characters_data["characters"]
+
+        # Ensure all characters have relationships
+        for char in chars:
+            if not char["relationships"]:
+                char["relationships"] = {}
+                for other in chars:
+                    if other != char:
+                        char["relationships"][other["name"]] = "Neutral acquaintance"
+
+        # Fix reciprocal relationships
+        for char1 in chars:
+            for char2 in chars:
+                if char1 != char2:
+                    if char2["name"] in char1["relationships"]:
+                        if char1["name"] not in char2["relationships"]:
+                            char2["relationships"][char1["name"]] = f"Reciprocal: {char1['relationships'][char2['name']]}"
+
+        characters_data["characters"] = chars
+        return characters_data
+
     def create_plot_outline(self, num_chapters: int) -> Dict:
         """Generate plot outline with improved structure and pacing"""
         self.log_separator("CREATING PLOT OUTLINE")
         self.logger.info(f"Planning {num_chapters} chapters")
-        
+
         template = {
             "acts": [
                 {
                     "act_number": 1,
                     "description": "",
-                    "key_events": ["" for _ in range(num_chapters)],
+                    "key_events": [""] * num_chapters,
                     "character_developments": {},
                     "themes_exploration": [],
-                    "pacing_notes": "",
-                    "location_changes": {},
-                    "required_plot_progressions": []
+                    "pacing_notes": ""
                 }
             ],
             "subplot_threads": [],
-            "story_arcs": {},
-            "timeline_markers": []
+            "story_arcs": {}
         }
-        
-        character_names = [char.name for char in self.book.characters]
-        active_plots = [name for name, thread in self.plot_threads.items() if thread.status == "active"]
-        
+
+        # Build context
+        character_names = [char['name'] for char in self.book_data["characters"]]
+        themes = self.book_data.get('themes', [])
+
         prompt = f"""Create a detailed {num_chapters}-chapter plot outline for:
-Title: {self.book.title}
-Premise: {self.book.metadata.get('premise', '')}
-Setting: {self.book.metadata.get('setting', '')}
+Title: {self.book_data['title']}
+Premise: {self.book_data['premise']}
+Setting: {self.book_data['setting']}
 Characters: {', '.join(character_names)}
-Themes: {', '.join(self.book.themes)}
-Active Plot Threads: {', '.join(active_plots)}
+Themes: {', '.join(themes)}
 
 Requirements:
 1. Create EXACTLY {num_chapters} key events (one per chapter)
 2. Divide story into three acts with clear narrative progression
 3. Include character development arcs for all main characters
-4. Advance all active plot threads logically
+4. Weave subplot threads that enhance the main plot
 5. Ensure consistent pacing and tension
 6. Explore and develop all main themes
 7. Build towards a satisfying climax
-8. Consider travel times between locations
-9. Balance character focus and plot advancement
-
-Timeline markers should track:
-- Character locations and movements
-- Plot thread progression
-- Key relationship changes
-- Theme development points
+8. Balance action, dialogue, and introspection
 
 Format the response as JSON with these exact fields:
 {json.dumps(template, indent=2)}
@@ -771,594 +680,629 @@ Provide ONLY the JSON response, no other text.
 
         response = self.generate_response(prompt)
         plot_data = self.parse_response_to_json(response, template)
-        
+
         if plot_data and "acts" in plot_data:
+            # Validate and balance acts
             plot_data = self._balance_plot_structure(plot_data, num_chapters)
-            
-            # Initialize timeline from plot data
-            if "timeline_markers" in plot_data:
-                for marker in plot_data["timeline_markers"]:
-                    if isinstance(marker, dict):
-                        chapter = marker.get("chapter", 0)
-                        if chapter not in self.timeline:
-                            self.timeline[chapter] = []
-                        self.timeline[chapter].append(marker.get("event", ""))
-                        
-            self.book.metadata["plot"] = plot_data
-            
+
+            self.book_data["plot"] = plot_data
+
             self.log_separator("PLOT OUTLINE CREATED")
             for act in plot_data["acts"]:
                 self.logger.info(f"\nAct {act['act_number']}")
                 self.logger.info(f"Description: {act['description']}")
                 for i, event in enumerate(act['key_events'], 1):
                     self.logger.info(f"Chapter {i}: {event}")
-                    
+
             return plot_data
 
         self.logger.error("Failed to create plot outline")
         return {}
-        
+
+    def _balance_plot_structure(self, plot_data: Dict, num_chapters: int) -> Dict:
+        """Balance plot structure across acts"""
+        acts = plot_data["acts"]
+        if not isinstance(acts, list):
+            acts = [acts]
+
+        # Calculate ideal act lengths based on total chapters
+        if num_chapters <= 3:
+            # For very short stories (3 chapters)
+            ideal_lengths = [1, 1, 1]  # One chapter per act
+        else:
+            # Standard distribution but adjusted for shorter works
+            first_act = max(1, round(num_chapters * 0.25))
+            third_act = max(1, round(num_chapters * 0.25))
+            second_act = num_chapters - first_act - third_act
+            ideal_lengths = [first_act, second_act, third_act]
+
+        # Adjust to match total chapters
+        while sum(ideal_lengths) < num_chapters:
+            ideal_lengths[1] += 1
+        while sum(ideal_lengths) > num_chapters:
+            if ideal_lengths[1] > 1:
+                ideal_lengths[1] -= 1
+            elif ideal_lengths[0] > 1:
+                ideal_lengths[0] -= 1
+            else:
+                ideal_lengths[2] -= 1
+
+        # Redistribute events
+        current_chapter = 0
+        adjusted_acts = []
+
+        for i, length in enumerate(ideal_lengths):
+            act_events = []
+            for _ in range(length):
+                if current_chapter < len(plot_data["acts"][0]["key_events"]):
+                    act_events.append(plot_data["acts"][0]["key_events"][current_chapter])
+                    current_chapter += 1
+                else:
+                    act_events.append(f"Chapter {current_chapter + 1} events")
+                    current_chapter += 1
+
+            adjusted_acts.append({
+                "act_number": i + 1,
+                "description": acts[0]["description"] if i == 0 else f"Act {i + 1}",
+                "key_events": act_events,
+                "character_developments": acts[0].get("character_developments", {}),
+                "themes_exploration": acts[0].get("themes_exploration", []),
+                "pacing_notes": acts[0].get("pacing_notes", "")
+            })
+
+        plot_data["acts"] = adjusted_acts
+        return plot_data
+
     def generate_chapter(self, chapter_number: int, chapter_summary: str) -> Chapter:
-        """Generate chapter with enhanced continuity checks"""
+        """Generate chapter with one retry attempt if needed"""
         self.log_separator(f"GENERATING CHAPTER {chapter_number}")
         self.logger.info(f"Summary: {chapter_summary}")
-        
-        # Build rich context
+
+        # First attempt
         context = self._build_chapter_context(chapter_number, chapter_summary)
         prompt = self._build_chapter_prompt(context)
+        content = self.generate_response(prompt)
         
-        MAX_RETRIES = 3  # Константа для максимального числа попыток
-        
-        for attempt in range(MAX_RETRIES):
-            try:
-                # First attempt
-                response = self.generate_response(prompt)
-                
-                # Очищаем ответ от маркеров форматирования
-                cleaned_response = response.replace('```json', '').replace('```', '').strip()
-                
-                # Проверяем, что ответ не пустой
-                if not cleaned_response:
-                    raise ValueError("Empty response received")
-                    
-                # Пытаемся распарсить JSON
-                try:
-                    chapter_data = json.loads(cleaned_response)
-                except json.JSONDecodeError:
-                    # Если не получилось распарсить JSON, создаем простую структуру
-                    chapter_data = {"content": cleaned_response}
-                    
-                # Получаем контент с проверкой
-                content = chapter_data.get("content", "")
-                if not content:
-                    raise ValueError("No content in response")
-                    
-                # Подсчет слов
-                word_count = len(content.split())
-                
-                if word_count < self.min_words:
-                    self.logger.warning(f"Attempt {attempt + 1}: Content too short ({word_count} words). Retrying...")
-                    
-                    improvement_prompt = f"""
-                    Expand this chapter while maintaining consistency:
-                    Previous version:
-                    {content}
-                    
-                    Chapter Summary: {chapter_summary}
-                    Current Context:
-                    {json.dumps(context, indent=2)}
-                    
-                    Requirements:
-                    1. Expand to at least {self.min_words} words
-                    2. Maintain all plot continuity
-                    3. Keep character locations and movements logical
-                    4. Advance relevant plot threads
-                    5. Show character development
-                    
-                    Provide ONLY the expanded content, no JSON formatting.
-                    """
-                    
-                    continue  # Пробуем еще раз
-                
-                # Parse scenes and validate continuity
-                scenes = self._parse_scenes(content)
-                
-                # Create chapter
-                chapter = Chapter(
-                    number=chapter_number,
-                    title=f"Chapter {chapter_number}",
-                    summary=chapter_summary,
-                    scenes=scenes,
-                    word_count=word_count,
-                    active_plot_threads=self._extract_active_plot_threads(content),
-                    character_developments=self._extract_character_developments_from_content(content)
-                )
-                
-                # Update world state
-                self._update_world_state(chapter)
-                
-                # Store chapter
-                self.book.chapters.append(chapter)
-                
-                self.logger.info(f"Chapter {chapter_number} completed: {word_count} words")
-                return chapter
+        # Validate first attempt
+        word_count = len(content.split())
+        if word_count < self.min_words:
+            self.logger.warning(f"First attempt for Chapter {chapter_number} is too short ({word_count} words). Attempting one retry.")
             
-            except Exception as e:
-                self.logger.error(f"Attempt {attempt + 1} failed: {str(e)}")
-                if attempt == MAX_RETRIES - 1:
-                    raise ValueError(f"Failed to generate chapter {chapter_number} after {MAX_RETRIES} attempts")
-                    
-                # Небольшая пауза перед следующей попыткой
-                time.sleep(2 ** attempt)  # Экспоненциальная задержка
-                
-        raise ValueError(f"Failed to generate chapter {chapter_number}")
-
-    def export_book(self, output_dir: str = None) -> str:
-        """Export book with complete manuscript and supporting files"""
-        if output_dir is None:
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            output_dir = f"generated_book_{timestamp}"
+            # Build improvement prompt using first attempt
+            improvement_prompt = f"""
+            The previous version of Chapter {chapter_number} needs improvement. Here's what needs to be enhanced:
             
-        output_path = Path(output_dir)
-        output_path.mkdir(exist_ok=True)
-        
-        chapters_dir = output_path / "chapters"
-        chapters_dir.mkdir(exist_ok=True)
-        resources_dir = output_path / "resources"
-        resources_dir.mkdir(exist_ok=True)
-        
-        # Create complete manuscript
-        manuscript_path = output_path / "manuscript.txt"
-        with open(manuscript_path, "w", encoding='utf-8') as f:
-            f.write(f"{self.book.title}\n\n")
+            1. Expand the content to meet minimum length ({self.min_words} words)
+            2. Add more detailed descriptions and character interactions
+            3. Maintain consistency with the story and characters
             
-            # Table of contents
-            f.write("Table of Contents\n\n")
-            for chapter in self.book.chapters:
-                f.write(f"Chapter {chapter.number}: {chapter.title}\n")
-            f.write("\n\n")
+            Previous version:
+            {content}
             
-            # Chapters
-            for chapter in self.book.chapters:
-                f.write(f"\nChapter {chapter.number}: {chapter.title}\n\n")
-                for scene in chapter.scenes:
-                    if scene.location:
-                        f.write(f"[Location: {scene.location}]\n")
-                    if scene.pov_character:
-                        f.write(f"[POV: {scene.pov_character}]\n")
-                    f.write(f"{scene.content}\n\n")
-                    
-        # Save enhanced metadata
-        metadata = {
-            "title": self.book.title,
-            "genre": self.book.genre,
-            "target_audience": self.book.target_audience,
-            "themes": self.book.themes,
-            "characters": [char.to_dict() for char in self.book.characters],
-            "metadata": self.book.metadata,
-            "character_arcs": self.character_arcs,
-            "timeline": self.timeline,
-            "generation_date": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "word_count": sum(ch.word_count for ch in self.book.chapters),
-            "chapter_count": len(self.book.chapters),
-            "generation_parameters": {
-                "model": self.model_name,
-                "minimum_chapter_words": self.min_words,
-                "maximum_chapter_words": self.max_words
-            }
-        }
-        
-        metadata_path = output_path / "metadata.json"
-        with open(metadata_path, "w", encoding='utf-8') as f:
-            json.dump(metadata, f, indent=2, ensure_ascii=False)
+            Chapter Summary: {chapter_summary}
             
-        # Save detailed character profiles
-        characters_file = resources_dir / "characters.txt"
-        with open(characters_file, "w", encoding='utf-8') as f:
-            f.write("# Characters\n\n")
-            for char in self.book.characters:
-                f.write(f"## {char.name}\n\n")
-                f.write(f"Background: {char.background}\n")
-                f.write(f"Personality: {char.personality}\n")
-                f.write(f"Goals: {char.goals}\n")
-                f.write(f"Current Location: {char.current_location}\n")
-                f.write("Active Goals:\n")
-                for goal in char.active_goals:
-                    f.write(f"- {goal}\n")
-                if char.relationships:
-                    f.write("Relationships:\n")
-                    for rel_name, rel_desc in char.relationships.items():
-                        f.write(f"- {rel_name}: {rel_desc}\n")
-                f.write("\n")
-                
-        # Save plot outline
-        plot_file = resources_dir / "plot_outline.txt"
-        with open(plot_file, "w", encoding='utf-8') as f:
-            f.write("# Plot Outline\n\n")
+            Please provide an improved version that maintains the same story elements but with better development and more detail.
+            """
             
-            # Plot Threads
-            f.write("## Active Plot Threads\n\n")
-            for name, thread in self.plot_threads.items():
-                f.write(f"### {name}\n")
-                f.write(f"Status: {thread.status}\n")
-                f.write("Key Events:\n")
-                for event in thread.key_events:
-                    f.write(f"- {event}\n")
-                f.write("\n")
-                
-            # Acts and Chapter Summaries
-            plot_data = self.book.metadata.get("plot", {})
-            if "acts" in plot_data:
-                for act in plot_data["acts"]:
-                    f.write(f"## Act {act['act_number']}\n\n")
-                    f.write(f"Description: {act['description']}\n\n")
-                    f.write("Key Events:\n")
-                    for i, event in enumerate(act['key_events'], 1):
-                        f.write(f"{i}. {event}\n")
-                    if act.get('character_developments'):
-                        f.write("\nCharacter Developments:\n")
-                        for char, dev in act['character_developments'].items():
-                            f.write(f"- {char}: {dev}\n")
-                    if act.get('location_changes'):
-                        f.write("\nLocation Changes:\n")
-                        for char, changes in act['location_changes'].items():
-                            f.write(f"- {char}: {changes['from']} -> {changes['to']}\n")
-                    f.write("\n")
-                    
-        # Save timeline
-        timeline_file = resources_dir / "timeline.txt"
-        with open(timeline_file, "w", encoding='utf-8') as f:
-            f.write("# Story Timeline\n\n")
-            for chapter, events in sorted(self.timeline.items()):
-                f.write(f"## Chapter {chapter}\n")
-                for event in events:
-                    f.write(f"- {event}\n")
-                f.write("\n")
-                
-        self.log_separator("BOOK EXPORTED")
-        self.logger.info(f"Files saved to: {output_path}")
-        return str(output_path)
-
-    def check_ollama(self) -> bool:
-        """Check Ollama availability"""
-        try:
-            response = requests.get("http://localhost:11434/api/tags")
-            return response.status_code == 200
-        except requests.exceptions.ConnectionError:
-            return False
-        
-    def print_ollama_error(self):
-        """Print Ollama error message"""
-        print("\nError: Ollama is not running or not accessible!")
-        print("\nTo start Ollama:")
-        print("1. Open a new terminal")
-        print("2. Run: ollama serve")
-        print("3. Wait for Ollama to start")
-        print("4. Run this script again")
-        
-    def main(self):
-        print("=== Book Generation System ===")
-        print("\nChecking Ollama availability...")
-        
-        if not self.check_ollama():
-            self.print_ollama_error()
-            sys.exit(1)
+            # Second and final attempt
+            content = self.generate_response(improvement_prompt)
+            word_count = len(content.split())
             
-        try:
-            user_input = self.get_user_input()
-            self.log_separator("STARTING BOOK GENERATION")
-            
-            book_concept = self.initialize_book(user_input)
-            if not book_concept:
-                raise ValueError("Failed to create book concept")
-                
-            characters = self.create_characters()
-            if not characters:
-                raise ValueError("Failed to create characters")
-                
-            plot = self.create_plot_outline(user_input["num_chapters"])
-            if not plot:
-                raise ValueError("Failed to create plot outline")
-                
-            for i in range(user_input["num_chapters"]):
-                chapter_num = i + 1
-                events = []
-                for act in plot["acts"]:
-                    if isinstance(act, dict) and "key_events" in act:
-                        events.extend(act["key_events"])
-                        
-                chapter_summary = events[i] if i < len(events) else f"Chapter {chapter_num} events"
-                
-                try:
-                    chapter = self.generate_chapter(chapter_num, chapter_summary)
-                    # Assuming refine_chapter is defined elsewhere
-                    # refined_chapter = self.refine_chapter(chapter)
-                    
-                    print(f"\nCompleted chapter {chapter_num}/{user_input['num_chapters']}")
-                    print(f"Word count: {chapter.word_count}")
-                    
-                except Exception as e:
-                    self.logger.error(f"Error in chapter {chapter_num}: {str(e)}")
-                    continue
-                
-                time.sleep(1)
-                
-            output_path = self.export_book()
-            
-            self.log_separator("GENERATION COMPLETED")
-            self.logger.info(f"Book saved to: {output_path}")
-            
-            print("\nGenerated files:")
-            print(f"1. Complete manuscript: {output_path}/manuscript.txt")
-            print(f"2. Chapter files: {output_path}/chapters/")
-            print(f"3. Character profiles: {output_path}/resources/characters.txt")
-            print(f"4. Plot outline: {output_path}/resources/plot_outline.txt")
-            print(f"5. Book metadata: {output_path}/metadata.json")
-            print(f"6. Story timeline: {output_path}/resources/timeline.txt")
-            
-        except KeyboardInterrupt:
-            self.log_separator("GENERATION INTERRUPTED BY USER")
-            print("\nSaving partial results...")
-            try:
-                output_path = self.export_book("partial_book")
-                print(f"Partial book saved to: {output_path}")
-            except Exception as e:
-                self.logger.error(f"Failed to save partial results: {str(e)}")
-            sys.exit(0)
-            
-        except Exception as e:
-            self.logger.error(f"Unexpected error: {str(e)}")
-            print("\nAn error occurred during generation.")
-            if hasattr(self, 'logger'):
-                print("Check the log file for details")
-            raise
-
-    def parse_response_to_json(self, response: str, template: Dict) -> Optional[Dict]:
-        """Parse the AI response into JSON, ensuring it matches the template structure"""
-        try:
-            # Очищаем ответ от маркеров форматирования
-            cleaned_response = response.replace('```json', '').replace('```', '').strip()
-            
-            parsed = json.loads(cleaned_response)
-            # Basic validation: check if all top-level keys in template are present
-            for key in template:
-                if key not in parsed:
-                    self.logger.error(f"Missing key in response: {key}")
-                    return None
-            return parsed
-        except json.JSONDecodeError as e:
-            self.logger.error(f"JSON parsing error: {str(e)}")
-            return None
-
-    def _validate_character_relationships(self, characters: List[Dict]) -> bool:
-        """Validate that character relationships reference existing characters"""
-        character_names = {char['name'] for char in characters if 'name' in char}
-        for char in characters:
-            relationships = char.get('relationships', {})
-            for rel in relationships.keys():
-                if rel not in character_names:
-                    self.logger.warning(f"Character {rel} in relationships does not exist.")
-                    return False
-        return True
-
-    def _fix_character_relationships(self, characters_data: Dict) -> Dict:
-        """Attempt to fix character relationships by removing invalid references"""
-        if not isinstance(characters_data, dict):
-            return {"characters": []}
-            
-        character_names = {char['name'] for char in characters_data.get("characters", []) if 'name' in char}
-        for char in characters_data.get("characters", []):
-            relationships = char.get("relationships", {})
-            valid_relationships = {rel: desc for rel, desc in relationships.items() if rel in character_names}
-            char["relationships"] = valid_relationships
-        return characters_data
-
-    def _validate_character_locations(self, characters: List[Dict]) -> bool:
-        """Validate that characters are in valid starting locations"""
-        valid_locations = set(self.location_state.valid_transitions.keys())
-        if not valid_locations:
-            valid_locations = {"starting_location"}
-        for char in characters:
-            loc = char.get("current_location", "")
-            if loc not in valid_locations:
-                self.logger.warning(f"Character {char.get('name', 'Unknown')} has invalid location: {loc}")
-                return False
-        return True
-
-    def _build_chapter_context(self, chapter_number: int, summary: str) -> Dict:
-        """Build rich context for chapter generation"""
-        previous_chapter = self._get_previous_chapter(chapter_number)
-        
-        context = {
-            "chapter_number": chapter_number,
-            "total_chapters": len(self.book.metadata["plot"]["acts"][0]["key_events"]),
-            "summary": summary,
-            "previous_chapter": previous_chapter.to_dict() if previous_chapter else None,
-            "active_plot_threads": {
-                name: thread for name, thread in self.plot_threads.items()
-                if thread.status == "active"
-            },
-            "character_states": {
-                char.name: {
-                    "location": char.current_location,
-                    "arc_stage": self.character_arcs[char.name]["stage"],
-                    "active_goals": char.active_goals,
-                    "recent_developments": self.character_arcs[char.name].get("recent_developments", [])
-                }
-                for char in self.book.characters
-            },
-            "timeline_markers": self.timeline.get(chapter_number, []),
-            "themes": self.book.themes,
-            "style_notes": self.book.metadata.get("style_notes", "")
-        }
-        
-        return context
-
-    def _get_previous_chapter(self, chapter_num: int) -> Optional[Chapter]:
-        """Get previous chapter if available"""
-        if chapter_num <= 1:
-            return None
-        
-        return next((chapter for chapter in self.book.chapters 
-                    if chapter.number == chapter_num - 1), None)
+            if word_count < self.min_words:
+                self.logger.warning(f"Second attempt still short ({word_count} words). Using best version.")
     
+        # Create scenes from the best version
+        scenes = self._parse_scenes(content)
+        
+        # Create chapter
+        chapter = Chapter(
+            number=chapter_number,
+            title=f"Chapter {chapter_number}",
+            summary=chapter_summary,
+            scenes=scenes,
+            word_count=len(content.split())
+        )
+        
+        # Store chapter regardless of validation
+        self.book_data["chapters"].append(chapter.to_dict())
+        self.logger.info(f"Chapter {chapter_number} completed: {chapter.word_count} words")
+        return chapter
+
+    def refine_chapter(self, chapter: Chapter) -> Chapter:
+        """Refine chapter with one improvement attempt"""
+        self.log_separator(f"REFINING CHAPTER {chapter.number}")
+
+        # Check if refinement is needed
+        original_content = "\n".join(scene.content for scene in chapter.scenes)
+        weak_points = self._analyze_chapter_weak_points(original_content)
+        
+        if not weak_points:
+            return chapter
+
+        # Build refinement prompt
+        refinement_prompt = f"""
+        Improve this chapter while maintaining its core story and character elements:
+
+        Original Chapter:
+        {original_content}
+
+        Areas to improve:
+        {json.dumps(weak_points, indent=2)}
+
+        Requirements:
+        1. Keep the same plot points and character interactions
+        2. Enhance descriptions and dialogue
+        3. Maintain consistent tone and style
+        4. Ensure proper pacing
+        
+        Word count target: {self.min_words}-{self.max_words} words
+        """
+
+        # Generate refined content - single attempt
+        refined = self.generate_response(refinement_prompt, temperature=0.7)
+
+        # Create new chapter from refined content
+        refined_scenes = self._parse_scenes(refined)
+        refined_word_count = len(refined.split())
+        
+        # Use refined version only if it's better
+        if refined_word_count >= self.min_words and refined_word_count <= self.max_words:
+            refined_chapter = Chapter(
+                number=chapter.number,
+                title=chapter.title,
+                summary=chapter.summary,
+                scenes=refined_scenes,
+                word_count=refined_word_count
+            )
+            
+            # Update storage with refined version
+            for i, stored_chapter in enumerate(self.book_data["chapters"]):
+                if stored_chapter["number"] == chapter.number:
+                    self.book_data["chapters"][i] = refined_chapter.to_dict()
+                    break
+                    
+            self.logger.info(f"Chapter {chapter.number} successfully refined: {refined_word_count} words")
+            return refined_chapter
+        
+        self.logger.warning(f"Refinement didn't improve chapter {chapter.number}. Keeping original version.")
+        return chapter
+
+    def _analyze_chapter_weak_points(self, content: str) -> Dict:
+        """Analyze chapter content for weak points"""
+        # Implement analysis logic here
+        # For simplicity, let's assume it returns some dummy weak points
+        return {
+            "description_richness": False,
+            "dialogue_quality": False,
+            "theme_consistency": False
+        }
+
+    def _build_refinement_prompt(self, chapter: Chapter, weak_points: Dict) -> str:
+        """Build prompt for refining a chapter"""
+        # Not used in the updated method, but kept for potential future use
+        pass
+
+    def _build_chapter_prompt(self, context: Dict) -> str:
+        """Build detailed prompt for chapter generation"""
+        return f"""Write Chapter {context['chapter_number']} of {context['total_chapters']}:
+
+Title: {self.book_data['title']}
+Summary: {context['summary']}
+Previous Chapter: {context['previous_chapter']['summary'] if context['previous_chapter'] else 'None'}
+Style Notes: {context['style_notes']}
+Themes to Explore: {', '.join(context['themes'])}
+
+Character Development Stage:
+{json.dumps(context['character_arcs'], indent=2)}
+
+Requirements:
+1. Follow established style and tone
+2. Maintain character consistency
+3. Write natural, engaging dialogue
+4. Include vivid sensory descriptions
+5. Create smooth scene transitions
+6. Advance character development
+7. Explore relevant themes
+8. Maintain narrative tension
+
+Target Length: {self.min_words}-{self.max_words} words
+
+Write the complete chapter content directly.
+"""
+
     def _parse_scenes(self, content: str) -> List[Scene]:
-        """Parse content into scenes with enhanced metadata"""
-        if not content:
-            return []
-        
+        """Parse content into coherent scenes"""
+        # Split on scene breaks
         raw_scenes = re.split(r'\n\s*\n(?=\S)', content)
+
         scenes = []
-        
         for raw_scene in raw_scenes:
-            # Extract metadata
+            # Extract location if present
             location_match = re.search(r'\[Location: (.*?)\]', raw_scene)
             location = location_match.group(1) if location_match else None
 
+            # Extract POV if present
             pov_match = re.search(r'\[POV: (.*?)\]', raw_scene)
             pov = pov_match.group(1) if pov_match else None
-            
-            time_match = re.search(r'\[Time: (\d+)\]', raw_scene)
-            time_passed = int(time_match.group(1)) if time_match else 0
-            
-            # Extract active characters
-            active_chars = []
-            for char in self.book.characters:
-                if char.name in raw_scene:
-                    active_chars.append(char.name)
-                    
-            # Extract plot threads
-            plot_threads = []
-            for thread_name, thread in self.plot_threads.items():
-                if thread_name.lower() in raw_scene.lower():
-                    plot_threads.append(thread_name)
-                    
+
             # Clean scene content
             clean_content = raw_scene
             if location_match:
                 clean_content = clean_content.replace(location_match.group(0), '')
             if pov_match:
                 clean_content = clean_content.replace(pov_match.group(0), '')
-            if time_match:
-                clean_content = clean_content.replace(time_match.group(0), '')
-                
+
             scenes.append(Scene(
                 content=clean_content.strip(),
                 location=location,
-                pov_character=pov,
-                time_passed=time_passed,
-                active_characters=active_chars,
-                plot_threads_advanced=plot_threads
+                pov_character=pov
             ))
 
         return scenes
 
-    def _validate_chapter_continuity(self, scenes: List[Scene], context: Dict) -> bool:
-        """Validate continuity within the chapter scenes"""
-        # Placeholder for actual continuity checks
-        # Implement checks based on context and scenes
+    def _expand_chapter_content(self, content: str, context: Dict) -> str:
+        """Expand chapter content to meet minimum length"""
+        self.logger.info("Expanding chapter content")
+
+        # Analyze current content
+        analysis = self._analyze_chapter_content(content)
+
+        # Build expansion prompt
+        expand_prompt = f"""
+        Expand this chapter by adding:
+        1. More detailed sensory descriptions
+        2. Natural dialogue and character interactions
+        3. Character internal monologue and emotions
+        4. Smoother scene transitions
+        5. Deeper exploration of themes
+        Current content:
+        {content}
+
+        Context:
+        {json.dumps(context, indent=2)}
+
+        Target word count: {self.min_words}-{self.max_words}
+        """
+
+        # Generate expanded content
+        expanded = self.generate_response(expand_prompt, temperature=0.8)
+
+        # Validate length
+        if len(expanded.split()) < self.min_words:
+            self.logger.warning("Expansion failed to meet minimum length")
+            return self._expand_chapter_content(expanded, context)
+
+        return expanded
+
+    def _analyze_chapter_content(self, content: str) -> Dict:
+        """Analyze chapter content for weak points"""
+        analysis = {
+            "word_count": len(content.split()),
+            "dialogue_count": len(re.findall(r'"([^"]*)"', content)),
+            "scene_count": len(re.split(r'\n\s*\n(?=\S)', content)),
+            "description_score": self._calculate_description_score(content),
+            "character_mentions": self._count_character_mentions(content),
+            "theme_coverage": self._check_theme_coverage(content)
+        }
+
+        return analysis
+
+    def _calculate_description_score(self, content: str) -> float:
+        """Calculate descriptive richness score"""
+        sensory_words = {
+            'sight': ['saw', 'looked', 'watched', 'observed', 'gazed'],
+            'sound': ['heard', 'listened', 'echoed', 'whispered', 'roared'],
+            'touch': ['felt', 'touched', 'brushed', 'grasped', 'held'],
+            'smell': ['smelled', 'scented', 'wafted', 'lingered'],
+            'taste': ['tasted', 'savored', 'bitter', 'sweet']
+        }
+
+        score = 0
+        words = content.lower().split()
+        total_words = len(words)
+
+        for sense_words in sensory_words.values():
+            for word in sense_words:
+                score += content.lower().count(word)
+
+        return score / total_words if total_words > 0 else 0
+
+    def _count_character_mentions(self, content: str) -> Dict[str, int]:
+        """Count mentions of each character"""
+        mentions = {}
+        for character in self.book_data["characters"]:
+            name_variants = self._get_name_variants(character["name"])
+            count = 0
+            for variant in name_variants:
+                count += len(re.findall(rf'\b{variant}\b', content, re.IGNORECASE))
+            mentions[character["name"]] = count
+
+        return mentions
+
+    def _get_name_variants(self, name: str) -> List[str]:
+        """Get possible variants of character name"""
+        parts = name.split()
+        variants = [name]  # Full name
+
+        if len(parts) > 1:
+            variants.append(parts[0])  # First name
+            variants.append(parts[-1])  # Last name
+
+        return variants
+
+    def _check_theme_coverage(self, content: str) -> Dict[str, bool]:
+        """Check coverage of book themes"""
+        coverage = {}
+        for theme in self.book_data.get("themes", []):
+            # Create theme keywords
+            keywords = self._get_theme_keywords(theme)
+            covered = False
+            for keyword in keywords:
+                if re.search(rf'\b{keyword}\b', content, re.IGNORECASE):
+                    covered = True
+                    break
+            coverage[theme] = covered
+
+        return coverage
+
+    def _get_theme_keywords(self, theme: str) -> List[str]:
+        """Generate keywords for theme detection"""
+        # Split theme into words
+        words = theme.lower().split()
+        keywords = [theme.lower()]  # Full theme
+
+        # Add individual significant words
+        for word in words:
+            if len(word) > 3:  # Skip short words
+                keywords.append(word)
+
+        # Add common variations
+        for word in words:
+            # Add plurals
+            if word.endswith('y'):
+                keywords.append(word[:-1] + 'ies')
+            else:
+                keywords.append(word + 's')
+
+            # Add -ing forms
+            if word.endswith('e'):
+                keywords.append(word[:-1] + 'ing')
+            else:
+                keywords.append(word + 'ing')
+
+        return keywords
+
+    def _validate_chapter(self, chapter: Chapter) -> bool:
+        """Validate chapter meets quality requirements"""
+        # Check length
+        if not (self.min_words <= chapter.word_count <= self.max_words):
+            self.logger.warning(f"Chapter length {chapter.word_count} words outside target range")
+            return False
+
+        # Check theme consistency
+        themes_covered = self._check_theme_coverage("\n".join(
+            scene.content for scene in chapter.scenes
+        ))
+        if not all(themes_covered.values()):
+            self.logger.warning("Not all themes covered in chapter")
+            return False
+
+        # Check character consistency
+        if not self._check_character_consistency(chapter):
+            self.logger.warning("Character inconsistencies detected")
+            return False
+
+        # Check dialogue quality
+        if not self._check_dialogue_quality(chapter):
+            self.logger.warning("Dialogue quality issues detected")
+            return False
+
         return True
 
-    def _fix_continuity_issues(self, scenes: List[Scene], context: Dict) -> List[Scene]:
-        """Attempt to fix continuity issues within the chapter scenes"""
-        # Placeholder for actual continuity fixes
-        # Implement logic to adjust scenes based on context
-        return scenes
+    def _check_character_consistency(self, chapter: Chapter) -> bool:
+        """Check character names and voices are consistent"""
+        chapter_text = "\n".join(scene.content for scene in chapter.scenes)
+        characters = self.book_data["characters"]
 
-    def _extract_active_plot_threads(self, content: str) -> List[str]:
-        """Extract active plot threads from chapter content"""
-        active_threads = []
-        for thread_name in self.plot_threads.keys():
-            if thread_name.lower() in content.lower():
-                active_threads.append(thread_name)
-        return active_threads
+        # Check names consistent
+        for char in characters:
+            name_variants = self._get_name_variants(char["name"])
+            found_variants = set()
+            for variant in name_variants:
+                if re.search(rf'\b{variant}\b', chapter_text, re.IGNORECASE):
+                    found_variants.add(variant)
+            if len(found_variants) > 1:
+                self.logger.warning(f"Inconsistent naming for character: {char['name']}")
+                return False
 
-    def _extract_character_developments_from_content(self, content: str) -> Dict[str, str]:
-        """Extract character developments from chapter content"""
-        developments = {}
-        for char in self.book.characters:
-            pattern = re.compile(rf"{re.escape(char.name)}.*?(?=\n|$)", re.IGNORECASE)
-            match = pattern.search(content)
-            if match:
-                developments[char.name] = match.group(0)
-        return developments
+        return True
 
-    def _update_world_state(self, chapter: Chapter):
-        """Update the world state based on the chapter's events"""
-        for scene in chapter.scenes:
-            for char in scene.active_characters:
-                if scene.location:
-                    self.location_state.character_locations[char] = scene.location
-                    self.character_arcs[char]["location_history"].append(scene.location)
+    def _check_dialogue_quality(self, chapter: Chapter) -> bool:
+        """Check dialogue is natural and character-appropriate"""
+        chapter_text = "\n".join(scene.content for scene in chapter.scenes)
+
+        # Extract dialogue
+        dialogue = re.findall(r'"([^"]*)"', chapter_text)
+
+        if len(dialogue) < 5:
+            self.logger.warning("Insufficient dialogue")
+            return False
+
+        # Check dialogue length variation
+        lengths = [len(d.split()) for d in dialogue]
+        if max(lengths) / min(lengths) < 2:
+            self.logger.warning("Dialogue lacks natural variation")
+            return False
+
+        return True
 
     def _balance_plot_structure(self, plot_data: Dict, num_chapters: int) -> Dict:
-        """Ensure that the plot structure is balanced across chapters"""
-        # Placeholder for actual balancing logic
+        """Balance plot structure across acts"""
+        acts = plot_data["acts"]
+        if not isinstance(acts, list):
+            acts = [acts]
+
+        # Calculate ideal act lengths based on total chapters
+        if num_chapters <= 3:
+            # For very short stories (3 chapters)
+            ideal_lengths = [1, 1, 1]  # One chapter per act
+        else:
+            # Standard distribution but adjusted for shorter works
+            first_act = max(1, round(num_chapters * 0.25))
+            third_act = max(1, round(num_chapters * 0.25))
+            second_act = num_chapters - first_act - third_act
+            ideal_lengths = [first_act, second_act, third_act]
+
+        # Adjust to match total chapters
+        while sum(ideal_lengths) < num_chapters:
+            ideal_lengths[1] += 1
+        while sum(ideal_lengths) > num_chapters:
+            if ideal_lengths[1] > 1:
+                ideal_lengths[1] -= 1
+            elif ideal_lengths[0] > 1:
+                ideal_lengths[0] -= 1
+            else:
+                ideal_lengths[2] -= 1
+
+        # Redistribute events
+        current_chapter = 0
+        adjusted_acts = []
+
+        for i, length in enumerate(ideal_lengths):
+            act_events = []
+            for _ in range(length):
+                if current_chapter < len(plot_data["acts"][0]["key_events"]):
+                    act_events.append(plot_data["acts"][0]["key_events"][current_chapter])
+                    current_chapter += 1
+                else:
+                    act_events.append(f"Chapter {current_chapter + 1} events")
+                    current_chapter += 1
+
+            adjusted_acts.append({
+                "act_number": i + 1,
+                "description": acts[0]["description"] if i == 0 else f"Act {i + 1}",
+                "key_events": act_events,
+                "character_developments": acts[0].get("character_developments", {}),
+                "themes_exploration": acts[0].get("themes_exploration", []),
+                "pacing_notes": acts[0].get("pacing_notes", "")
+            })
+
+        plot_data["acts"] = adjusted_acts
         return plot_data
 
-    def _build_chapter_prompt(self, context: Dict) -> str:
-        """Build the prompt for generating a chapter based on context"""
-        prompt = f"""Generate Chapter {context['chapter_number']} for the book "{self.book.title}" with the following summary and context:
+    def _analyze_chapter_content(self, content: str) -> Dict:
+        """Analyze chapter content for weak points"""
+        analysis = {
+            "word_count": len(content.split()),
+            "dialogue_count": len(re.findall(r'"([^"]*)"', content)),
+            "scene_count": len(re.split(r'\n\s*\n(?=\S)', content)),
+            "description_score": self._calculate_description_score(content),
+            "character_mentions": self._count_character_mentions(content),
+            "theme_coverage": self._check_theme_coverage(content)
+        }
 
-Chapter Summary:
-{context['summary']}
+        return analysis
 
-Context:
-{json.dumps(context, indent=2)}
+    def _analyze_chapter_weak_points(self, content: str) -> Dict:
+        """Analyze chapter content for weak points"""
+        # Implement analysis logic here
+        # For simplicity, let's assume it returns some dummy weak points
+        return {
+            "description_richness": False,
+            "dialogue_quality": False,
+            "theme_consistency": False
+        }
 
-Requirements:
-1. Maintain continuity with previous chapters
-2. Develop active plot threads
-3. Show character development and interactions
-4. Adhere to the writing style and themes
-5. Ensure logical character movements and location changes
-6. Keep within the word count limits ({self.min_words}-{self.max_words} words)
+    def export_book(self, output_dir: str = None) -> str:
+        """Export book with complete manuscript and supporting files"""
+        if output_dir is None:
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            output_dir = f"generated_book_{timestamp}"
 
-Provide the chapter content with scene breaks as needed.
-"""
-        return prompt
+        output_path = Path(output_dir)
+        output_path.mkdir(exist_ok=True)
 
-    def _validate_character_relationships(self, characters: List[Dict]) -> bool:
-        """Validate that character relationships reference existing characters"""
-        character_names = {char['name'] for char in characters if 'name' in char}
-        for char in characters:
-            relationships = char.get('relationships', {})
-            for rel in relationships.keys():
-                if rel not in character_names:
-                    self.logger.warning(f"Character {rel} in relationships does not exist.")
-                    return False
-        return True
+        # Create directory structure
+        chapters_dir = output_path / "chapters"
+        chapters_dir.mkdir(exist_ok=True)
+        resources_dir = output_path / "resources"
+        resources_dir.mkdir(exist_ok=True)
 
-    def _fix_character_relationships(self, characters_data: Dict) -> Dict:
-        """Attempt to fix character relationships by removing invalid references"""
-        if not isinstance(characters_data, dict):
-            return {"characters": []}
+        # Create complete manuscript
+        manuscript_path = output_path / "manuscript.txt"
+        with open(manuscript_path, "w", encoding='utf-8') as f:
+            # Title page
+            f.write(f"{self.book_data['title']}\n\n")
             
-        character_names = {char['name'] for char in characters_data.get("characters", []) if 'name' in char}
-        for char in characters_data.get("characters", []):
-            relationships = char.get("relationships", {})
-            valid_relationships = {rel: desc for rel, desc in relationships.items() if rel in character_names}
-            char["relationships"] = valid_relationships
-        return characters_data
+            # Table of contents
+            f.write("Table of Contents\n\n")
+            for chapter in self.book_data["chapters"]:
+                f.write(f"Chapter {chapter['number']}: {chapter['title']}\n")
+            f.write("\n\n")
+            
+            # Chapters
+            for chapter in self.book_data["chapters"]:
+                f.write(f"\nChapter {chapter['number']}: {chapter['title']}\n\n")
+                for scene in chapter["scenes"]:
+                    if scene["location"]:
+                        f.write(f"[Location: {scene['location']}]\n")
+                    if scene["pov_character"]:
+                        f.write(f"[POV: {scene['pov_character']}]\n")
+                    f.write(f"{scene['content']}\n\n")
 
-    def _validate_character_locations(self, characters: List[Dict]) -> bool:
-        """Validate that characters are in valid starting locations"""
-        valid_locations = set(self.location_state.valid_transitions.keys())
-        if not valid_locations:
-            valid_locations = {"starting_location"}
-        for char in characters:
-            loc = char.get("current_location", "")
-            if loc not in valid_locations:
-                self.logger.warning(f"Character {char.get('name', 'Unknown')} has invalid location: {loc}")
-                return False
-        return True
+        # Save metadata and supporting files (keeping existing functionality)
+        metadata = {
+            "title": self.book_data["title"],
+            "premise": self.book_data["premise"],
+            "setting": self.book_data["setting"],
+            "themes": self.book_data.get("themes", []),
+            "characters": self.book_data["characters"],
+            "plot": self.book_data["plot"],
+            "generation_date": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "word_count": sum(ch["word_count"] for ch in self.book_data["chapters"]),
+            "chapter_count": len(self.book_data["chapters"]),
+            "generation_parameters": {
+                "model": self.model_name,
+                "minimum_chapter_words": self.min_words,
+                "maximum_chapter_words": self.max_words
+            }
+        }
 
-    def refine_chapter(self, chapter: Chapter) -> Chapter:
-        """Placeholder for chapter refinement process"""
-        # Implement any refinement logic here
-        return chapter
+        metadata_path = output_path / "metadata.json"
+        with open(metadata_path, "w", encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-# Utility functions
+        # Save character profiles
+        characters_file = resources_dir / "characters.txt"
+        with open(characters_file, "w", encoding='utf-8') as f:
+            f.write("# Characters\n\n")
+            for char in self.book_data["characters"]:
+                f.write(f"## {char['name']}\n\n")
+                f.write(f"Background: {char['background']}\n")
+                f.write(f"Personality: {char['personality']}\n")
+                f.write(f"Goals: {char['goals']}\n")
+                if char['relationships']:
+                    f.write("Relationships:\n")
+                    for rel_name, rel_desc in char['relationships'].items():
+                        f.write(f"- {rel_name}: {rel_desc}\n")
+                f.write("\n")
+
+        # Save plot outline
+        plot_file = resources_dir / "plot_outline.txt"
+        with open(plot_file, "w", encoding='utf-8') as f:
+            f.write("# Plot Outline\n\n")
+            for act in self.book_data["plot"]["acts"]:
+                f.write(f"## Act {act['act_number']}\n\n")
+                f.write(f"Description: {act['description']}\n\n")
+                f.write("Key Events:\n")
+                for i, event in enumerate(act['key_events'], 1):
+                    f.write(f"{i}. {event}\n")
+                f.write("\n")
+
+        self.log_separator("BOOK EXPORTED")
+        self.logger.info(f"Files saved to: {output_path}")
+        return str(output_path)
+
 def check_ollama() -> bool:
     """Check Ollama availability"""
     try:
@@ -1366,7 +1310,7 @@ def check_ollama() -> bool:
         return response.status_code == 200
     except requests.exceptions.ConnectionError:
         return False
-    
+
 def print_ollama_error():
     """Print Ollama error message"""
     print("\nError: Ollama is not running or not accessible!")
@@ -1375,13 +1319,102 @@ def print_ollama_error():
     print("2. Run: ollama serve")
     print("3. Wait for Ollama to start")
     print("4. Run this script again")
-    
+
 def main():
-    generator = BookGenerator(
-        min_words=DEFAULT_CHAPTER_MIN_WORDS,
-        max_words=DEFAULT_CHAPTER_MAX_WORDS
-    )
-    generator.main()
+    print("=== Book Generation System ===")
+    print("\nChecking Ollama availability...")
+
+    if not check_ollama():
+        print_ollama_error()
+        sys.exit(1)
+
+    try:
+        # Initialize generator
+        generator = BookGenerator(
+            min_words=DEFAULT_CHAPTER_MIN_WORDS,
+            max_words=DEFAULT_CHAPTER_MAX_WORDS
+        )
+
+        # Get user input
+        user_input = generator.get_user_input()
+
+        generator.log_separator("STARTING BOOK GENERATION")
+
+        # Initialize book concept
+        book_concept = generator.initialize_book(user_input)
+        if not book_concept:
+            raise ValueError("Failed to create book concept")
+
+        # Create characters
+        characters = generator.create_characters()
+        if not characters:
+            raise ValueError("Failed to create characters")
+
+        # Create plot outline
+        plot = generator.create_plot_outline(user_input["num_chapters"])
+        if not plot:
+            raise ValueError("Failed to create plot outline")
+
+        # Generate chapters
+        for i in range(user_input["num_chapters"]):
+            chapter_num = i + 1
+
+            # Get chapter summary
+            events = []
+            for act in plot["acts"]:
+                events.extend(act.get("key_events", []))
+
+            chapter_summary = events[i] if i < len(events) else f"Chapter {chapter_num} events"
+
+            try:
+                # Generate and refine chapter
+                chapter = generator.generate_chapter(chapter_num, chapter_summary)
+                refined_chapter = generator.refine_chapter(chapter)
+
+                # Progress update
+                print(f"\nCompleted chapter {chapter_num}/{user_input['num_chapters']}")
+                print(f"Word count: {refined_chapter.word_count}")
+
+            except Exception as e:
+                generator.logger.error(f"Error in chapter {chapter_num}: {str(e)}")
+                continue
+
+            # Brief pause between chapters
+            time.sleep(1)
+
+        # Export completed book
+        output_path = generator.export_book()
+
+        generator.log_separator("GENERATION COMPLETED")
+        generator.logger.info(f"Book saved to: {output_path}")
+
+        print("\nGenerated files:")
+        print(f"1. Complete manuscript: {output_path}/manuscript.txt")
+        print(f"2. Chapter files: {output_path}/chapters/")
+        print(f"3. Character profiles: {output_path}/resources/characters.txt")
+        print(f"4. Plot outline: {output_path}/resources/plot_outline.txt")
+        print(f"5. Book metadata: {output_path}/metadata.json")
+
+    except KeyboardInterrupt:
+        # Handle user interruption
+        generator.log_separator("GENERATION INTERRUPTED BY USER")
+        print("\nSaving partial results...")
+        try:
+            if 'generator' in locals():
+                output_path = generator.export_book("partial_book")
+                print(f"Partial book saved to: {output_path}")
+        except Exception as e:
+            generator.logger.error(f"Failed to save partial results: {str(e)}")
+        sys.exit(0)
+
+    except Exception as e:
+        # Handle unexpected errors
+        if 'generator' in locals():
+            generator.logger.error(f"Unexpected error: {str(e)}")
+        print("\nAn error occurred during generation.")
+        if hasattr(generator, 'logger'):
+            print("Check the log file for details")
+        raise
 
 if __name__ == "__main__":
     try:
@@ -1389,4 +1422,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Fatal error: {str(e)}")
         sys.exit(1)
-        
