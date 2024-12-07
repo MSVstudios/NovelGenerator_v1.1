@@ -360,7 +360,7 @@ Anton nestled close to Garry, seeking solace in his warmth.  He knew their respi
   A: Yes, but we recommend thorough review and editing before commercial use.
 
 - Q: What makes NovelGenerator different from other text generators?
-  A: Our tool focuses on complete novel generation with coherent plot structures, character development, and professional-grade writing quality.
+  A: My tool focuses on complete novel generation with coherent plot structures, character development, and professional-grade writing quality.
 </details>
 
 ## 🤝 Contributing
