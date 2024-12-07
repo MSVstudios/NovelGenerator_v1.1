@@ -43,7 +43,15 @@ pip install -r requirements.txt
 ```bash
 ollama serve
 ```
-
+```bash
+ollama pull gemma2:9b
+```
+```bash
+ollama pull gemma2:27b
+```
+```bash
+ollama pull command-r:35b-08-2024-q5_0
+```
 2. Run generator:
 ```bash
 python novel_generator.py
