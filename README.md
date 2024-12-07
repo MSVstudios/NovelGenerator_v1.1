@@ -21,7 +21,6 @@ NovelGenerator is a sophisticated Python tool that leverages advanced AI models 
 - 👥 Rich character development with relationships 
 - 📚 Three-act plot structure
 - 📝 Chapter generation with scenes
-- 🔍 Content validation and refinement
 - 📊 Progress tracking and logging
 
 ## 🛠️ Requirements
@@ -78,8 +77,8 @@ DEFAULT_CHAPTER_MIN_WORDS = 800
 DEFAULT_CHAPTER_MAX_WORDS = 2000
 MODEL_CONFIG = {
     "default": "gemma2:27b",
-    "fast": "gemma2:27b",
-    "creative": "gemma2:27b"
+    "fast": "gemma2:9b",
+    "creative": "command-r:35b-08-2024-q5_0"
 }
 ```
 
@@ -101,7 +100,7 @@ The generated text demonstrated professional-grade content complexity through:
 Overall Score: 4.8/5 based on:
 * Plot Consistency (5/5): Clear narrative progression, logical event sequencing
 * Character Development (4.5/5): Well-defined personality evolution, consistent motivation
-* Emotional Depth (5/5): Nuanced relationship dynamics, complex internal conflicts
+* Emotional Depth (4/5): Nuanced relationship dynamics, complex internal conflicts
 * Dialogue Quality (4.5/5): Natural conversations reflecting distinct character voices
 * Atmosphere Creation (5/5): Rich sensory details, immersive world-building
 
@@ -339,9 +338,7 @@ Anton nestled close to Garry, seeking solace in his warmth.  He knew their respi
 
 ### Key Technical Implementations:
 1. Structured prompt engineering for progressive story development
-2. Quality control system for content validation and refinement
-3. Context management ensuring narrative coherence
-4. Automated refinement for character voice consistency
+2. Context management ensuring narrative coherence
 
 ## ❓ FAQ
 
@@ -370,7 +367,7 @@ MIT
 
 ## 🙏 Acknowledgments
 
-Built with Ollama and Gemma 2:27b
+Built with Ollama and gemma2:27b
 
 ---
 <div align="center">
