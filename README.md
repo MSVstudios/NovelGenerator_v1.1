@@ -357,7 +357,7 @@ Anton nestled close to Garry, seeking solace in his warmth.  He knew their respi
   A: Generation time varies depending on chapter length, complexity, and system resources.
 
 - Q: Can I use the generated content commercially?
-  A: Yes, but we recommend thorough review and editing before commercial use.
+  A: Yes, but I recommend thorough review and editing before commercial use.
 
 - Q: What makes NovelGenerator different from other text generators?
   A: My tool focuses on complete novel generation with coherent plot structures, character development, and professional-grade writing quality.
