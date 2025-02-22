@@ -55,7 +55,7 @@ ollama pull gemma2:27b
 python novel_generator.py
 ```
 
-## 🧪 Research & Testing Results
+## 🧪 Testing Results
 
 
 ## 📝 Example Output
