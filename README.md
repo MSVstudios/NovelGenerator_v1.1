@@ -55,15 +55,6 @@ ollama pull gemma2:27b
 python novel_generator.py
 ```
 
-3. Follow prompts to set:
-- Genre
-- Target audience
-- Themes
-- Chapter count
-- Writing style
-- Special requirements
-
-
 ## 🧪 Research & Testing Results
 
 ### Testing Methodology & Results:
