@@ -97,7 +97,7 @@ Overall Score: 4.8/5 based on:
 - Q: What makes NovelGenerator different from other text generators?
   A: The tool focuses on complete novel generation with coherent plot structures, character development, and professional-grade writing quality.
 
-  - Q: Any technical challenge?
+- Q: Any technical challenge?
   A: The main technical challenge, requiring multiple code revisions, was ensuring narrative consistency - both between scenes within chapters and between chapters throughout the manuscript, while maintaining an engaging plot. The system aims to generate chapters with lengths comparable to published books.
 </details>
 
