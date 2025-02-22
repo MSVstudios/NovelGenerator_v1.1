@@ -55,14 +55,7 @@ ollama pull gemma2:27b
 python novel_generator.py
 ```
 
-## 🧪 Testing Results
-
-
 ## 📝 Example Output
-
-### Key Technical Implementations:
-1. Structured prompt engineering for progressive story development
-2. Context management ensuring narrative coherence
 
 ## ❓ FAQ
 
