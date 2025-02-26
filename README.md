@@ -44,12 +44,6 @@ pip install -r requirements.txt
 ```bash
 ollama serve
 ```
-```bash
-ollama pull mistral-small:24b
-```
-```bash
-ollama pull gemma2:27b
-```
 2. Run generator:
 ```bash
 python novel_generator.py
