@@ -84,16 +84,28 @@ STORY INPUT: One paragraph up to 830 characters with your plot idea
 
     def extract_world_name(self, outline):
         """Extract consistent world name from the story outline"""
-        # Look for patterns like "Neo-Babylon", "Neo-Tokyo", etc.
-        pattern = r"Neo-[A-Za-z]+"
-        matches = re.findall(pattern, outline)
-        if matches:
-            # Use the most common Neo-location name
-            counts = {}
-            for match in matches:
-                counts[match] = counts.get(match, 0) + 1
-            return max(counts, key=counts.get)
-        return "Neo-City"  # Default if none found
+        # Generic pattern to find world names without hardcoding specific ones
+        patterns = [
+            r"Neo-[A-Za-z]+",
+            r"[A-Z][a-z]+land",
+            r"[A-Z][a-z]+ Kingdom",
+            r"[A-Z][a-z]+ Empire",
+            r"[A-Z][a-z]+ Realm",
+            r"[A-Z][a-z]+ World",
+            r"[A-Z][a-z]+ City"
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, outline)
+            if matches:
+                # Use the most common name found
+                counts = {}
+                for match in matches:
+                    counts[match] = counts.get(match, 0) + 1
+                return max(counts, key=counts.get)
+        
+        # If no specific world name is found, let the LLM generate one in later steps
+        return ""
 
     def create_story_outline(self):
         """Generate a high-level outline for the entire story with improved structure"""
@@ -111,7 +123,7 @@ For each chapter, provide:
 4. Setting/location details (be specific and consistent)
 
 Also create a section titled "WORLD BUILDING" with:
-1. The name of the main city/setting (use a consistent name throughout)
+1. The name of the main city/setting (create a unique, memorable name)
 2. Key locations that will appear multiple times
 3. Important technology or cultural elements
 
@@ -149,6 +161,18 @@ Include EVERY character mentioned in the outline, even minor ones.
 
         # Extract world name for consistency
         self.world_name = self.extract_world_name(self.story_outline)
+        
+        # If no world name was found, ask the LLM to create one
+        if not self.world_name:
+            world_prompt = f"""Based on this story outline, create a unique and memorable name for the main world/city/setting:
+
+{self.story_outline}
+
+The name should be a single term, creative, and fitting the tone of the story.
+Reply with ONLY the world name, nothing else.
+"""
+            self.world_name = self.generate_text(world_prompt).strip()
+            print(f"Generated world name: {self.world_name}")
 
         # Create detailed chapter-by-chapter plan
         chapter_plan_prompt = f"""Based on the story outline, create a VERY detailed chapter-by-chapter plan.
