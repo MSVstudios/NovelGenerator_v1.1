@@ -48,6 +48,7 @@ ollama serve
 ```bash
 python novel_generator.py
 ```
+Optional: You can run story_idea_generation.py first - Creative LLM Agents creates book plots by orchestrating three specialized AI models (Architect, Visionary, and Critic) that debate and refine ideas over multiple iterations, transforming a simple user theme into a cohesive narrative concept. This system functions as a sophisticated idea generator, producing well-developed plot foundations that serve as optimal input for the main book generation engine.
 
 ## 📝 Example Output
 
