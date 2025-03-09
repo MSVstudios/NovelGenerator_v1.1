@@ -61,9 +61,7 @@ Optional: You can run story_idea_generation.py first - Creative LLM Agents creat
   <img src="no-safe-exit.jpg" alt="Scarlet Priestess" width="300"/>
 </a>
 
-# Literary Analysis - Melisandre Origin Story
-
-![Version](https://img.shields.io/badge/version-1.0-green.svg)
+Literary Analysis - Melisandre Origin Story
 
 Quantitative analysis of a fan-fiction text depicting Melisandre's origin story from ASOIAF.
 
@@ -87,7 +85,7 @@ Fantasy: 8.2 | ASOIAF: 8.5 | Thematic: 8.4 | Character: 8.0
 - Above-average imagery and symbolism metrics
 - Heavy emphasis on narration over dialogue
 - Strong world-building consistency with ASOIAF universe
-- 
+
 ## ❓ FAQ
 
 <details>
