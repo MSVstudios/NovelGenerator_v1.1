@@ -21,10 +21,16 @@ Additionally, running story_idea_generation.py engages Creative LLM Agents—Arc
 
 ## ✨ Features
 
-- 🔄 Full generation pipeline
-- 👥 Rich character development with relationships 
-- 📝 Chapter generation with scenes
-- 📊 Progress tracking and logging
+- 🔄 Full generation pipeline from premise to complete novel
+- 👥 Rich character development with relationships, arcs, and consistent tracking
+- 📝 Chapter generation with detailed scenes and natural transitions
+- 📊 Progress tracking and logging throughout creation process
+- 🌍 Consistent world-building with recurring motifs and locations
+- 📈 Emotional arc tracking and narrative tension management
+- ⏱️ Timeline consistency between chapters
+- 🔍 Automatic consistency validation and correction
+- 🔄 Smooth chapter-to-chapter transitions
+- 📚 Final quality assurance for narrative flow
 
 ## 🛠️ Requirements
 
