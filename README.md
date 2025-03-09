@@ -15,7 +15,7 @@
 
 NovelGenerator V2.5 is a sophisticated Python tool for generating complete novels and fanfiction from just a short paragraph of user input. Using Ollama's large language models, it creates coherent plot structures, develops nuanced characters, and writes in multiple literary styles. You can choose a script variant with a different API provider. Options available include Ollama, ChatGPT, and Claude Sonnet.
 
-While API calls to commercial models like Claude or ChatGPT can produce better results, this generator leverages local LLMs to keep it completely free. The innovative architecture of the script cleverly compensates for this quality difference. Simply launch the script and go about your business—your book generates completely automatically in the background without requiring your attention or intervention, leaving your hands free for other tasks.
+While API calls to commercial models like Claude or ChatGPT can produce better results, Ollama version leverages local LLMs to keep it completely free. The innovative architecture of the script cleverly compensates for this quality difference. Simply launch the script and go about your business—your book generates completely automatically in the background without requiring your attention or intervention, leaving your hands free for other tasks.
 
 ## ✨ Features
 
