@@ -61,6 +61,33 @@ Optional: You can run story_idea_generation.py first - Creative LLM Agents creat
   <img src="no-safe-exit.jpg" alt="Scarlet Priestess" width="300"/>
 </a>
 
+# Literary Analysis - Melisandre Origin Story
+
+![Version](https://img.shields.io/badge/version-1.0-green.svg)
+
+Quantitative analysis of a fan-fiction text depicting Melisandre's origin story from ASOIAF.
+
+## Core Metrics
+
+| Metric | Value | | Metric | Value |
+|--------|-------|-|--------|-------|
+| Word Count | 6,723 | | Flesch Reading Ease | 70.2 |
+| Chapters | 8 | | Flesch-Kincaid Grade | 9.4 |
+| Avg Words/Chapter | 840 | | Lexical Density | 58.3% |
+| Dialogue Ratio | 22% | | Description Density | 49.8% |
+
+## Literary Devices (per 1000 words)
+Metaphors: 4.0 | Similes: 2.1 | Imagery: 12.8 | Symbolism: 4.8
+
+## Genre Alignment (1-10)
+Fantasy: 8.2 | ASOIAF: 8.5 | Thematic: 8.4 | Character: 8.0
+
+## Key Findings
+- Professional-quality writing with strong descriptive language
+- Above-average imagery and symbolism metrics
+- Heavy emphasis on narration over dialogue
+- Strong world-building consistency with ASOIAF universe
+- 
 ## ❓ FAQ
 
 <details>
