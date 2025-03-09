@@ -52,7 +52,7 @@ Optional: You can run story_idea_generation.py first - Creative LLM Agents creat
 
 ## 📝 Example Output
 
-<a href="scarlet-priestess.epub" download>
+<a href="scarlet-priestess.txt" download>
   <img src="scarlet-priestess.jpg" alt="Scarlet Priestess" width="300"/>
 </a>
 
