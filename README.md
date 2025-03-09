@@ -13,11 +13,11 @@
 
 </div>
 
-NovelGenerator V2.5 is a sophisticated Python tool for generating complete novels and fanfiction from just a short paragraph of user input. Using Ollama's large language models, it creates coherent plot structures, develops nuanced characters, and writes in multiple literary styles. You can choose a script variant with a different API provider. Options available include Ollama, ChatGPT, and Claude Sonnet.
+NovelGenerator V2.5 is an advanced Python tool that transforms a brief user prompt into a complete novel or fanfiction. By leveraging Ollama’s large language models, it builds coherent plots, develops rich characters, and adapts to various literary styles. You can also choose alternative API providers like ChatGPT or Claude Sonnet.
 
-While API calls to commercial models like Claude or ChatGPT can produce better results, Ollama version leverages local LLMs to keep it completely free. The innovative architecture of the script cleverly compensates for this quality difference. Simply launch the script and go about your business—your book generates completely automatically in the background without requiring your attention or intervention, leaving your hands free for other tasks.
+While commercial models may offer higher quality, the Ollama version remains free by using local LLMs—its innovative design bridges any quality gap, generating your book automatically in the background without requiring your attention.
 
-Optional: You can run story_idea_generation.py first - Creative LLM Agents creates book plots by orchestrating three specialized AI models (Architect, Visionary, and Critic) that debate and refine ideas over multiple iterations, transforming a simple user theme into a cohesive narrative concept. This system functions as a sophisticated idea generator, producing well-developed plot foundations that serve as optimal input for the main book generation engine.
+Additionally, running story_idea_generation.py engages Creative LLM Agents—Architect, Visionary, and Critic—who collaboratively debate and refine ideas over several iterations. This process turns a simple theme into a well-structured narrative, providing the perfect foundation for the main book generator.
 
 ## ✨ Features
 
