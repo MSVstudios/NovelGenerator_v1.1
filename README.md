@@ -56,6 +56,10 @@ Optional: You can run story_idea_generation.py first - Creative LLM Agents creat
   <img src="scarlet-priestess.jpg" alt="Scarlet Priestess" width="300"/>
 </a>
 
+<a href="no-safe-exit.txt" download>
+  <img src="no-safe-exit.jpg" alt="Scarlet Priestess" width="300"/>
+</a>
+
 ## ❓ FAQ
 
 <details>
