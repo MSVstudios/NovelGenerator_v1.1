@@ -11,7 +11,7 @@ The story was created using the Novel Generator v2.5 script by Artem Kazakov Koz
 Cover and all images generated separately using DALL·E 3 by OpenAI. Usage rights governed by OpenAI's DALL·E terms of service. 
 The Novel Generator script is open source and available for use under the terms specified in its repository: https://github.com/KazKozDev/NovelGenerator.
 
-
+March 2025 
 
 Input: In Asshai, young Melisandre, formerly a slave girl named Melony from Volantis, begins learning shadowbinding from the priestess Quaithe. 300 years before the wars in Westeros, she prays before the fire every night. Her gift of prophecy shows her visions: blue eyes of White Walkers in snowstorms, the falling Wall, and the hero Azor Ahai being reborn in salt and smoke. She studies rituals and secrets of immortality. Her faith in R'hllor becomes fanatical. When she puts on the ruby necklace with magical power, it hides her true appearance. This is how a slave girl transforms into the Red Priestess who will change the fate of kingdoms.
 
