@@ -56,6 +56,11 @@ ollama serve
 ```bash
 python novel_generator.py
 ```
+Alternative Options:
+Two additional scripts are available for different API providers:
+
+ChatGPT Option: novel_generator_chat_gpt.py
+Sonet Option: novel_generator_sonet.py
 
 ## 📝 Example Output
 
