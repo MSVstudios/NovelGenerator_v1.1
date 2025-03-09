@@ -61,7 +61,8 @@ Optional: You can run story_idea_generation.py first - Creative LLM Agents creat
   <img src="no-safe-exit.jpg" alt="Scarlet Priestess" width="300"/>
 </a>
 
-Literary Analysis - Melisandre Origin Story
+
+## Literary Analysis - Melisandre Origin Story
 
 Quantitative analysis of a fan-fiction text depicting Melisandre's origin story from ASOIAF.
 
