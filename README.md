@@ -75,7 +75,7 @@ Two additional scripts are available for different API providers:
 </a>
 
 
-## Literary Analysis - Melisandre Origin Story
+## Literary Analysis - Melisandre Origin Story (Scarlet Priestess)
 
 Quantitative analysis of a fan-fiction text depicting Melisandre's origin story from ASOIAF.
 
