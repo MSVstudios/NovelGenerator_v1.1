@@ -10,30 +10,26 @@
 
 </div>
 
-NovelGenerator is an advanced Python tool that transforms a brief user input into a complete novel or fanfiction. By leveraging Ollama’s large language models, it builds coherent plots, develops rich characters, and adapts to various literary styles. You can also choose alternative API providers like ChatGPT or Claude Sonnet.
+# NovelGenerator
 
-While commercial models may offer higher quality, the Ollama version remains free by using local LLMs—its innovative design bridges any quality gap, generating your book automatically in the background without requiring your attention.
+NovelGenerator is a Python tool that transforms brief inputs into complete novels using language model technology.
 
-Additionally, running story_idea_generation.py engages Creative LLM Agents—Architect, Visionary, and Critic—who collaboratively debate and refine ideas over several iterations. This process turns a simple theme into a well-structured narrative, providing the perfect foundation for the main book generator.
+## Core Architecture
+- Leverages Ollama's local LLMs (free) or enterprise APIs (ChatGPT, Claude)
+- Implements asynchronous processing for background operation
+- Features modular design for configurable literary styles
 
-## ✨ Features
+## Technical Capabilities
+- End-to-end pipeline from concept to complete novel
+- Entity relationship modeling for character development
+- Structured content generation with scene-level granularity
+- Persistent state management for consistent world-building
+- Algorithmic narrative tension control
+- Automated semantic validation with correction protocols
+- Multi-pass quality assurance for narrative coherence
 
-- 🔄 Full generation pipeline from premise to complete novel
-- 👥 Rich character development with relationships, arcs, and consistent tracking
-- 📝 Chapter generation with detailed scenes and natural transitions
-- 📊 Progress tracking and logging throughout creation process
-- 🌍 Consistent world-building with recurring motifs and locations
-- 📈 Emotional arc tracking and narrative tension management
-- ⏱️ Timeline consistency between chapters
-- 🔍 Automatic consistency validation and correction
-- 🔄 Smooth chapter-to-chapter transitions
-- 📚 Final quality assurance for narrative flow
-
-## 🛠️ Requirements
-
-- Python 3.8+
-- Ollama 
-- Dependencies: requests, dataclasses
+## Multi-Agent System
+The separate `story_idea_generation.py` script employs a distributed architecture with specialized AI agents (Architect, Visionary, and Critic) that collaboratively refine narrative concepts through iterative debate, transforming simple themes into structured story frameworks.
 
 ## 🚀 Installation
 
