@@ -14,7 +14,6 @@
 
 NovelGenerator is a Python tool that transforms brief inputs into complete novels using language model technology.
 
-## Core Architecture
 - Leverages Ollama's local LLMs (free) or enterprise APIs (ChatGPT, Claude)
 - Implements asynchronous processing for background operation
 - Features modular design for configurable literary styles
