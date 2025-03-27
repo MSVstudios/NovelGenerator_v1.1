@@ -13,7 +13,7 @@ From idea to manuscript. Without human intervention.
 
 </div>
 <br>
-This Python tool enables writers, storytellers, and LLM enthusiasts to produce complete fiction using either free local LLMs or commercial API services. The entire generation process runs autonomously while maintaining narrative coherence.
+This Python tool enables writers, storytellers, and LLM enthusiasts to produce complete fiction using either free local LLMs or commercial API services. The entire generation process runs autonomously while maintaining narrative coherence.<br>
 
 - End-to-end pipeline from concept to complete novel
 - Entity relationship modeling for character development
