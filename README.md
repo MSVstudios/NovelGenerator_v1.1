@@ -10,7 +10,6 @@
 
 NovelGenerator is a Python tool that automatically converts your brief ideas into complete novels using LLM. It works with either free local models (via Ollama) or commercial APIs (like ChatGPT and Claude). The tool runs in the background without requiring your attention and allows you to customize the writing style.
 
-## Technical Capabilities
 - End-to-end pipeline from concept to complete novel
 - Entity relationship modeling for character development
 - Structured content generation with scene-level granularity
