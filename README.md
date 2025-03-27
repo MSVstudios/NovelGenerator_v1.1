@@ -1,6 +1,6 @@
 <div align="center">
 
-![logo](https://github.com/user-attachments/assets/00339b68-eb07-44ab-9375-dc77d2748791)
+![logo](https://github.com/user-attachments/assets/c3f3a380-7958-4186-94c1-7e1472ef22b1)
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Ollama](https://img.shields.io/badge/LLM-Ollama-orange.svg)](https://ollama.ai)
