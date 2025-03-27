@@ -8,12 +8,12 @@
 
 </div>
 <div align="center">
-NovelGenerator is an AI-powered tool that expands brief concepts into full-length novels. <br><br>
+NovelGenerator is an LLM-powered tool that expands brief concepts into full-length novels. <br>
 From idea to manuscript. Without human intervention.
 
 </div>
 
-This Python framework enables writers, storytellers, and LLM enthusiasts to produce complete fiction using either free local LLMs or commercial API services. The entire generation process runs autonomously while maintaining narrative coherence.
+This Python tool enables writers, storytellers, and LLM enthusiasts to produce complete fiction using either free local LLMs or commercial API services. The entire generation process runs autonomously while maintaining narrative coherence.
 
 - End-to-end pipeline from concept to complete novel
 - Entity relationship modeling for character development
