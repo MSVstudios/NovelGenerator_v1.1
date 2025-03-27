@@ -8,8 +8,6 @@
 
 </div>
 
-## NovelGenerator
-
 NovelGenerator is a Python tool that transforms brief inputs into complete novels using LLM.
 
 - Leverages Ollama's local LLMs (free) or enterprise APIs (ChatGPT, Claude)
