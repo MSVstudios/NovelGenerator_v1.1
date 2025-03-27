@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="Banner.jpg" alt="NovelGenerator Banner" width="800"/>
+![logo](https://github.com/user-attachments/assets/00339b68-eb07-44ab-9375-dc77d2748791)
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Ollama](https://img.shields.io/badge/LLM-Ollama-orange.svg)](https://ollama.ai)
