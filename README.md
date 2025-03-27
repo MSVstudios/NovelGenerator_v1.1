@@ -29,6 +29,17 @@ NovelGenerator is a Python tool that transforms brief inputs into complete novel
 ## Multi-Agent System
 The separate `story_idea_generation.py` script employs a distributed architecture with specialized AI agents (Architect, Visionary, and Critic) that collaboratively refine narrative concepts through iterative debate, transforming simple themes into structured story frameworks.
 
+## 📝 Example Output
+
+<a href="scarlet-priestess.txt" download>
+  <img src="scarlet-priestess.jpg" alt="Scarlet Priestess" width="300"/>
+</a>
+
+
+<a href="no-safe-exit.txt" download>
+  <img src="no-safe-exit.jpg" alt="Scarlet Priestess" width="300"/>
+</a>
+
 ## 🚀 Installation
 
 ```bash
@@ -54,42 +65,6 @@ Two additional scripts are available for different API providers:
 
 - Sonet Option: novel_generator_sonet.py
 
-## 📝 Example Output
-
-<a href="scarlet-priestess.txt" download>
-  <img src="scarlet-priestess.jpg" alt="Scarlet Priestess" width="300"/>
-</a>
-
-
-<a href="no-safe-exit.txt" download>
-  <img src="no-safe-exit.jpg" alt="Scarlet Priestess" width="300"/>
-</a>
-
-
-## Literary Analysis - Melisandre Origin Story (Scarlet Priestess)
-
-Quantitative analysis of a fan-fiction text depicting Melisandre's origin story from ASOIAF.
-
-## Core Metrics
-
-| Metric | Value | | Metric | Value |
-|--------|-------|-|--------|-------|
-| Word Count | 6,723 | | Flesch Reading Ease | 70.2 |
-| Chapters | 8 | | Flesch-Kincaid Grade | 9.4 |
-| Avg Words/Chapter | 840 | | Lexical Density | 58.3% |
-| Dialogue Ratio | 22% | | Description Density | 49.8% |
-
-## Literary Devices (per 1000 words)
-Metaphors: 4.0 | Similes: 2.1 | Imagery: 12.8 | Symbolism: 4.8
-
-## Genre Alignment (1-10)
-Fantasy: 8.2 | ASOIAF: 8.5 | Thematic: 8.4 | Character: 8.0
-
-## Key Findings
-- Professional-quality writing with strong descriptive language
-- Above-average imagery and symbolism metrics
-- Heavy emphasis on narration over dialogue
-- Strong world-building consistency with ASOIAF universe
 
 ## ❓ FAQ
 
