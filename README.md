@@ -8,11 +8,7 @@
 
 </div>
 
-NovelGenerator is a Python tool that transforms brief inputs into complete novels using LLM.
-
-- Leverages Ollama's local LLMs (free) or enterprise APIs (ChatGPT, Claude)
-- Implements asynchronous processing for background operation
-- Features modular design for configurable literary styles
+NovelGenerator is a Python tool that automatically converts your brief ideas into complete novels using LLM. It works with either free local models (via Ollama) or commercial APIs (like ChatGPT and Claude). The tool runs in the background without requiring your attention and allows you to customize the writing style. For more refined story concepts, you can use the included story_idea_generation.py script, which employs three specialized AI agents that work together to develop and structure your narrative ideas.
 
 ## Technical Capabilities
 - End-to-end pipeline from concept to complete novel
