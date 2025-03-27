@@ -15,13 +15,7 @@ From idea to manuscript. Without human intervention.
 <br>
 NovelGenerator enables writers, storytellers, and LLM enthusiasts to produce complete fiction using either free local LLMs or commercial API services. The entire generation process runs autonomously while maintaining narrative coherence.<br><br>
 
-- End-to-end pipeline from concept to complete novel
-- Entity relationship modeling for character development
-- Structured content generation with scene-level granularity
-- Persistent state management for consistent world-building
-- Algorithmic narrative tension control
-- Automated semantic validation with correction protocols
-- Multi-pass quality assurance for narrative coherence
+An end-to-end novel creation system employs entity relationship modeling for character development while generating structured content at scene-level granularity within a persistent state management framework for world consistency. The pipeline incorporates algorithmic tension control to manage narrative pacing alongside automated semantic validation to identify inconsistencies, culminating in multi-pass quality assurance that ensures overall narrative coherence and artistic integrity.
 
 ## Multi-Agent System
 The separate `story_idea_generation.py` script employs a distributed architecture with specialized AI agents (Architect, Visionary, and Critic) that collaboratively refine narrative concepts through iterative debate, transforming simple themes into structured story frameworks.
