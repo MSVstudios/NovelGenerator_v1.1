@@ -7,8 +7,13 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/KazKozDev/NovelGenerator/blob/master/LICENSE)
 
 </div>
+<div align="center">
+NovelGenerator is an AI-powered tool that expands brief concepts into full-length novels.
+From idea to manuscript. Without human intervention.
 
-NovelGenerator is a Python tool that automatically converts your brief ideas into complete novels using LLM. It works with either free local models (via Ollama) or commercial APIs (like ChatGPT and Claude). The tool runs in the background without requiring your attention and allows you to customize the writing style.
+</div>
+
+This Python framework enables writers, storytellers, and LLM enthusiasts to produce complete fiction using either free local LLMs or commercial API services. The entire generation process runs autonomously while maintaining narrative coherence.
 
 - End-to-end pipeline from concept to complete novel
 - Entity relationship modeling for character development
