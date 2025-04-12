@@ -32,6 +32,7 @@ env/
 *.swo
 
 # Project specific
+output/*
 outputs/novels/*
 outputs/analytics/*
 outputs/metadata/*
