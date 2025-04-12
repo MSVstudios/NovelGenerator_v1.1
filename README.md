@@ -49,6 +49,8 @@ TODO
 
 
 ```bash
+python.exe -m pip install --upgrade pip
+
 pip install -r requirements.txt
 ```
 
@@ -58,16 +60,25 @@ pip install -r requirements.txt
 ```bash
 ollama serve
 ```
-explain argument here
---model (you llm model in olama) defualt [gemma3:27b]
---synopsis text reference [if omioted prompt will ask in console]
---ollama _url [http://localhost:11434]
 
+--model: Specifies the language model to use (default: gemma3:12b). For best results, use gemma3:27b or a better model.
+--synopsis: Provides the story synopsis. If omitted, the program will prompt you to enter it in the console. You can also provide a text file containing the synopsis (e.g., --synopsis path/to/synopsis.txt).
+--ollama_url: The URL of your Ollama API (default: http://localhost:11434).
+--chapters: The number of chapters you want in your novel (default: 3).
+--language: The language of the book (default: en). Supported languages are defined in story_outline_prompt.json.
+--genre: The genre of the book (default: fantasy).
+--audience: The target audience for the book (default: adult).
+--tone: The tone of the book (default: light).
+--style: The narrative style of the book (default: third person).
+--setting: The setting of the book (default: modern).
+--themes: The themes explored in the book (default: love).
+--names: The style of character names to use (default: realistic).
+--output: The output file name (default: ./output/generated_book.md).
 
 
 2. Run generator:
 ```bash
-python novel_generator.py
+python novel_generator.py --model gemma3:27b --synopsis "A young wizard must stop an ancient evil from destroying the kingdom." --ollama_url http://localhost:11434 --chapters 5 --language en --genre fantasy --audience adult --tone light --style third person --setting modern --themes love --names realistic --output my_novel.md
 ```
 Alternative Options:
 Two additional scripts are available for different API providers:
@@ -94,6 +105,12 @@ Two additional scripts are available for different API providers:
 - Q: Any technical challenge?
   A: The main technical challenge, requiring multiple code revisions, was ensuring narrative consistency - both between scenes within chapters and between chapters throughout the manuscript, while maintaining an engaging plot. The system aims to generate chapters with lengths comparable to published books.
 </details>
+
+## Changes in v1.5
+
+*   Implemented multi-language support for prompts using a JSON file.
+*   Integrated various LLM providers: Ollama, OpenAI, Anthropic, OpenRouter and DeepSeek.
+*   Added character and world name extraction using LLMs.
 
 ## 🤝 Contributing
 

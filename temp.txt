@@ -1,0 +1,2 @@
+        character_names = list(self.characters.keys())
+        characters_str = ", ".join(character_names)

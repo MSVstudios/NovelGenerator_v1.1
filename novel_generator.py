@@ -4,216 +4,490 @@ import json
 import time
 import os
 import re
+import datetime
+from openai import OpenAI
+import anthropic
 
 
 class BookGenerator:
-    def __init__(self):
-        self.base_url = "http://localhost:11434/api/generate"
-        self.model = "gemma3:12b"
-        self.story_premise = ""
-        self.num_chapters = 0
+    def __init__(
+        self,
+        model="gemma3:12b",
+        base_url="http://localhost:11434",
+        story_premise="",
+        num_chapters=3,
+        language="en",
+        genre="fantasy",
+        audience="adult",
+        tone="light",
+        style="third person",
+        setting="modern",
+        themes="love",
+        names="realistic",
+    ):
+        self.base_url = base_url + "/api/generate"  # whe can implement a check
+        self.model = model # whe can implement a check
+        self.api_key = None # 
+        self.language = language # to be done
+        self.language_settings = None # to be done
+        # advanced promts
+        self.genre = genre # to be done
+        self.audience = audience # to be done
+        self.tone = tone # to be done
+        self.style = style # to be done
+        self.setting = setting # to be done
+        self.themes = themes # to be done
+        self.names = names # to be done
+        # Prompt template for generating story outline
+        self.story_premise = story_premise
+        self.max_premisw_lengh = 900
+        self.num_chapters = num_chapters
         self.story_outline = ""
         self.chapters = []
-        self.characters = {}  # Changed from list to dictionary for easier lookup
-        self.chapter_summaries = {}  # Store detailed summaries of each chapter
-        self.settings = {}  # Track settings/locations
-        self.plot_events = []  # Track major plot events
-        self.world_name = ""  # Consistent world name
-        self.chapter_plan = ""  # Store the detailed chapter plan
-        self.timeline = {}  # Track time progression between chapters
-        self.emotional_arc = {}  # Track emotional tone in chapters
-        self.transitions = {}  # Store generated transitions between chapters
-        self.recurring_motifs = []  # Track recurring motifs or symbols for continuity
+        self.characters = {}
+        self.chapter_summaries = {}
+        self.settings = {}
+        self.plot_events = []
+        self.world_name = ""
+        self.chapter_plan = ""
+        self.timeline = {}
+        self.emotional_arc = {}
+        self.transitions = {}
+        self.recurring_motifs = []
+        
 
     def get_user_input(self):
         """Get the story premise and number of chapters from the user"""
         print(
             f"""
 ──────────────────────────────────────────────────────────────────────────────────
-                      N O V E L   G E N E R A T O R   2 . 5
+                      N O V E L   G E N E R A T O R   2 . 8
 ──────────────────────────────────────────────────────────────────────────────────
 ENGINE: Running on Ollama with {self.model}
 CAPABILITIES: Creates novels or fanfiction with consistency checks
 GENERATION TIME: Up to an hour depending on computational resources
-STORY INPUT: One paragraph up to 830 characters with your plot idea
+STORY INPUT: One paragraph up to {self.max_premisw_lengh} characters with your plot idea
 """
         )
-        
-        self.story_premise = input("Please provide a paragraph about what your story is about: ")
+        # we check if --synopsis is passed as an argument
+        if not self.story_premise:
+            self.story_premise = input("Please provide a paragraph about what your story is about: ")
+        else:
+            print(f"Using provided story premise: {self.story_premise}\n")
+            # check if the self.story_premise is a file path
+            if os.path.isfile(self.story_premise):
+                # load the story promise file
+                self.story_premise = open(self.story_premise, "r", encoding="utf-8").read() 
+                print(f"Loaded story premise from file:\n {self.story_premise}\n")
+            else:
+                print(f"Using provided story premise: {self.story_premise}\n") 
 
-        while True:
-            try:
-                self.num_chapters = int(input("How many chapters would you like (minimum 3): "))
-                if self.num_chapters >= 3:
+        if len(self.story_premise) > self.max_premisw_lengh:
+            print(f"Story premise is too long, we will limit it to {self.max_premisw_lengh} characters.")
+            self.story_premise = self.story_premise[:self.max_premisw_lengh]
+            print(f"Story premise limited to {self.max_premisw_lengh} characters: {self.story_premise}")
+
+        try:
+            if isinstance(self.num_chapters, str):
+                self.num_chapters = int(self.num_chapters)
+            if not isinstance(self.num_chapters, int) or self.num_chapters < 3:
+                print("Number of chapters not valid, setting default to 3.")
+                self.num_chapters = 3
+        except ValueError:
+            print("Invalid input for number of chapters, setting default to 3.")
+            self.num_chapters = 3
+
+        # Select the apropiate language for prompts
+        with open("./json/story_outline_prompt.json", "r") as f:
+            prompt_data = json.load(f)
+
+        # Load the correct language settings
+        language_settings = None
+        for setting in prompt_data["prompts"]:
+            if setting["language"] == self.language:
+                language_settings = setting
+                break
+
+        if language_settings is None:
+            print(f"No story outline settings found for language: {self.language}. Using default 'en'.")
+            for setting in prompt_data["prompts"]:
+                if setting["language"] == "en":
+                    language_settings = setting
                     break
-                else:
-                    print("Please enter at least 3 chapters.")
-            except ValueError:
-                print("Please enter a valid number.")
+            if language_settings is None:
+                raise ValueError("No default 'en' language settings found in story_outline_prompt.json!")
 
+        # Load the language settings     
+        self.language_settings = language_settings
+
+    # API Call to LLMs
     def generate_text(self, prompt, system_prompt="You are a creative fiction writer."):
-        """Make API call to Ollama with the given prompt"""
+        """Make API call to different LLMs based on base_url"""
+
         data = {
             "model": self.model,
             "prompt": prompt,
             "system": system_prompt,
             "stream": False,
         }
+        headers = {}
 
         try:
-            response = requests.post(self.base_url, json=data, timeout=10)
-            response.raise_for_status()
-            return response.json()["response"]
-        except requests.exceptions.RequestException as e:
-            print(f"Error making request to Ollama: {e}")
+            if self.is_local_ollama(self.base_url):
+                # Ollama API
+                # Retry the request up to 3 times to handle potential Ollama loading delays.
+                for attempt in range(3):
+                    try:
+                        response = requests.post(self.base_url, json=data, timeout=300)  # timeout set to 5 minutes
+                        response.raise_for_status()
+                        return response.json()["response"]
+                    except requests.exceptions.RequestException as e:
+                        print(f"Attempt {attempt + 1} failed: {e}")
+                        time.sleep(2)  # Wait before retrying
+                print("Max retries exceeded. Request failed.")
+                return None
+            elif "openai" in self.base_url:
+                # OpenAI API
+                from openai import OpenAI
+
+                client = OpenAI(api_key=self.api_key)
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt},
+                ]
+                response = client.chat.completions.create(model=self.model, messages=messages, stream=False)
+                return response.choices[0].message.content
+            elif "anthropic" in self.base_url:
+                # Anthropic API
+                import anthropic
+
+                client = anthropic.Anthropic(api_key=self.api_key)
+                combined_prompt = system_prompt + "\n" + prompt
+                response = client.messages.create(
+                    model=self.model, max_tokens=8192, messages=[{"role": "user", "content": combined_prompt}]
+                )
+                return response.content[0].text
+            elif "openrouter" in self.base_url:
+                # OpenRouter API uses OpenAI client
+                openai_client = OpenAI(
+                    base_url="https://openrouter.ai/api/v1",
+                    api_key=self.api_key,  # Use the stored API key
+                )
+                try:
+                    response = openai_client.chat.completions.create(
+                        model=self.model,
+                        max_tokens=8192,
+                        extra_body={
+                            "models": ["anthropic/claude-3.5-sonnet", "gryphe/mythomax-l2-13b"],
+                        },
+                        messages=[{"role": "user", "content": prompt}],
+                        timeout=60,  # Add a timeout
+                    )
+                    return response.choices[0].message.content  # Extract content
+                except Exception as e:
+                    print(f"OpenRouter API error: {e}")
+                    return None
+            elif "deepseek" in self.base_url: # https://api.deepseek.com/chat/completions
+                # DeepSeek API
+                from openai import OpenAI
+
+                client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+                response = client.chat.completions.create(
+                    model="deepseek-chat",
+                    messages=[{"role": "system", "content": "You are a helpful assistant"}, {"role": "user", "content": prompt}],
+                    stream=False,
+                )
+                return response.choices[0].message.content
+            else:
+                raise ValueError(f"Unsupported API in base_url: {self.base_url}")
+
+        except Exception as e:
+            print(f"Error making request: {e}")
             return None
+    
+    def is_local_ollama(self, base_url):
+        """Check if the base_url is a local Ollama instance."""
+        return (
+            "localhost" in base_url
+            or "127.0.0.1" in base_url
+            or re.match(r"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$", base_url.split(":")[1].strip("/"), re.IGNORECASE) # check if is a local ip adress
+        )
 
-    def extract_characters(self, text):
+    def extract_characters(self, text, method_llm=True):
         """Extract character information from text and create structured data"""
-        characters = {}
-        # Look for patterns like "CHARACTER NAME: description"
-        pattern = r"([A-Z][A-Za-z\s]+):\s+([^\n]+)"
-        matches = re.findall(pattern, text)
+        if method_llm:
+            system_prompt = """You are an expert at extracting characters information from text.
+    Your task is to identify all characters mentioned in the text and provide a brief description for each.
+    The output MUST be in JSON format. Ensure the JSON is valid and parsable."""
+            prompt = f"""Extract all characters information from the following text.
+    The output MUST be a JSON array of character objects. Each object should have the following keys:
+    - name: The character's name (string)
+    - description: A brief description of the character (string)
+    - first_appearance: 0,
+    - status: "alive",
+    - development: [],
+    - relationships: {{}}
+    
+    TEXT:
+    {text}
+    
+    Ensure the output is valid JSON. Start with '[' and end with ']'. Do not include any text outside of the JSON structure.
+    Here is an example of the desired output format:
+    [
+      {{
+        "name": "Character A",
+        "description": "A brave warrior",
+        "first_appearance": 1,
+        "status": "alive",
+        "development": [],
+        "relationships": {{}}
+      }},
+      {{
+        "name": "Character B",
+        "description": "A wise wizard",
+        "first_appearance": 2,
+        "status": "alive",
+        "development": [],
+        "relationships": {{}}
+      }}
+    ]
+    """
+            try:
+                json_output = self.generate_text(prompt, system_prompt)
+                print(f"LLM JSON Output: {json_output}")
+                if json_output:
+                    try:
+                        # Remove any markdown code blocks if they exist
+                        json_output = json_output.replace('```json', '').replace('```', '').strip()
+                        characters_list = json.loads(json_output)
+                        print(f"Extracted characters list: {characters_list}")
+    
+                        # Convert the list to a dictionary with character names as keys
+                        characters = {}
+                        for character in characters_list:
+                            name = character["name"]
+                            characters[name] = character  # Assign the entire character dictionary
+                        print(f"Extracted characters dict: {characters}")
+                        return characters
+    
+                    except (json.JSONDecodeError, TypeError) as e:
+                        print(f"Error decoding JSON from LLM: {e}. JSON Output: {json_output}")
+                        return {}
+                else:
+                    print("LLM returned empty output for character extraction.")
+                    return {}
+            except Exception as e:
+                print(f"Error during LLM character extraction: {e}")
+                return {}
+        else:
+            characters = {}  # Keep as a dictionary
+            pattern = r"([A-Z][A-Za-z\s]+):\s+([^\n]+)"
+            matches = re.findall(pattern, text)
+    
+            for match in matches:
+                name = match[0].strip()
+                description = match[1].strip()
+                characters[name] = {  # Assign to dictionary using character name as key
+                    "name": name,
+                    "description": description,
+                    "first_appearance": 0,
+                    "status": "alive",
+                    "development": [],
+                    "relationships": {},
+                }
+            return characters
 
-        for match in matches:
-            name = match[0].strip()
-            description = match[1].strip()
-            characters[name] = {
-                "name": name,
-                "description": description,
-                "first_appearance": 0,
-                "status": "alive",
-                "development": [],
-                "relationships": {},
-            }
-
-        return characters
-
-    def extract_world_name(self, outline):
+    def extract_world_name(self, outline, method_llm=True):
         """Extract consistent world name from the story outline"""
-        # Generic pattern to find world names without hardcoding specific ones
-        patterns = [
-            r"Neo-[A-Za-z]+",
-            r"[A-Z][a-z]+land",
-            r"[A-Z][a-z]+ Kingdom",
-            r"[A-Z][a-z]+ Empire",
-            r"[A-Z][a-z]+ Realm",
-            r"[A-Z][a-z]+ World",
-            r"[A-Z][a-z]+ City"
-        ]
-        
-        for pattern in patterns:
-            matches = re.findall(pattern, outline)
-            if matches:
-                # Use the most common name found
-                counts = {}
-                for match in matches:
-                    counts[match] = counts.get(match, 0) + 1
-                return max(counts, key=counts.get)
-        
-        # If no specific world name is found, let the LLM generate one in later steps
-        return ""
+        if method_llm:
+            system_prompt = """You are an expert at extracting world names from text.
+    Your task is to identify the world name mentioned in the text.
+    The output MUST be a single string with the world name."""
+            prompt = f"""Extract the world name from the following text.
+    The output MUST be a single string with the world name.
+    
+    TEXT:
+    {outline}"""
+            try:
+                world_name = self.generate_text(prompt, system_prompt)
+                if world_name:
+                    # Remove any markdown code blocks if they exist
+                    world_name = world_name.replace('```json', '').replace('```', '').strip()
+                    # Check if the world name is empty or contains only whitespace
+                    if not world_name or len(world_name) < 3:
+                        print("LLM returned an empty or invalid world name.")
+                        return ""
+                    # Check if the world name is too long
+                    if len(world_name) > 50:
+                        print("LLM returned a world name that is too long.")
+                        return ""
+                    # Check if the world name contains invalid characters
+                    if not re.match(r"^[A-Za-z0-9\s\-]+$", world_name):
+                        print("LLM returned a world name with invalid characters.")
+                        return ""
+                    # if contain nuber can be an options
+                    print(f"LLM extract world name: {world_name}")    
+                    return world_name.strip()
+                else:
+                    print("LLM returned empty output for world name extraction.")
+                    # generate one ?
+                    return ""
+            except Exception as e:
+                print(f"Error during LLM world name extraction: {e}")
+                return ""
+        else:
+            if not outline:
+                print("No outline provided to extract world name from.")
+                return ""
+    
+            # Generic pattern to find world names without hardcoding specific ones
+            patterns = [
+                r"Neo-[A-Za-z]+",
+                r"[A-Z][a-z]+land",
+                r"[A-Z][a-z]+ Kingdom",
+                r"[A-Z][a-z]+ Empire",
+                r"[A-Z][a-z]+ Realm",
+                r"[A-Z][a-z]+ World",
+                r"[A-Z][a-z]+ City"
+            ]
+    
+            for pattern in patterns:
+                matches = re.findall(pattern, outline)
+                if matches:
+                    # Use the most common name found
+                    counts = {}
+                    for match in matches:
+                        counts[match] = counts.get(match, 0) + 1
+                    # Check if counts is empty before calling max
+                    if counts:
+                        return max(counts, key=counts.get)
+                    else:
+                        continue  # No matches for this pattern, try the next
+    
+            # If no specific world name is found, let the LLM generate one in later steps
+            print("No world name found using patterns. Will attempt LLM generation later.")
+            return ""
 
     def create_story_outline(self):
         """Generate a high-level outline for the entire story with improved structure"""
-        system_prompt = """You are a professional novelist and editor. 
-        You excel at creating compelling story outlines that maintain coherence and proper narrative structure.
-        Pay special attention to character development, consistent world-building, and logical plot progression."""
-        prompt = f"""Based on the following story premise, create a detailed story outline for a {self.num_chapters}-chapter book.
 
-Story premise: {self.story_premise}
+        # Calculate variables for the prompt
+        middle_chapter_end = self.num_chapters - 2
+        end_chapter_count = min(2, self.num_chapters - 2)
+        climax_chapter_1 = self.num_chapters - 2
+        climax_chapter_2 = self.num_chapters - 1
 
-For each chapter, provide:
-1. A chapter title
-2. Key plot events (3-4 bullet points with specific details)
-3. Character development points (which characters appear and how they develop)
-4. Setting/location details (be specific and consistent)
+        system_prompt = self.language_settings["system_prompt"]
 
-Also create a section titled "WORLD BUILDING" with:
-1. The name of the main city/setting (create a unique, memorable name)
-2. Key locations that will appear multiple times
-3. Important technology or cultural elements
+        if any([self.genre, self.audience, self.tone, self.style, self.setting, self.themes, self.names]) and "prompt_improved" in self.language_settings:
+            prompt_template = self.language_settings["prompt_improved"]
+            prompt = prompt_template.format(
+            num_chapters=self.num_chapters,
+            story_premise=self.story_premise,
+            middle_chapter_end=middle_chapter_end,
+            end_chapter_count=end_chapter_count,
+            climax_chapter_1=climax_chapter_1,
+            climax_chapter_2=climax_chapter_2,
+            genre=self.genre,
+            audience=self.audience,
+            tone=self.tone,
+            style=self.style,
+            setting=self.setting,
+            themes=self.themes,
+            names=self.names,
+            )
+        else:
+            prompt_template = self.language_settings["prompt"]
+            prompt = prompt_template.format(
+                num_chapters=self.num_chapters,
+                story_premise=self.story_premise,
+                middle_chapter_end=middle_chapter_end,
+                end_chapter_count=end_chapter_count,
+                climax_chapter_1=climax_chapter_1,
+                climax_chapter_2=climax_chapter_2
+            )
 
-Then create a section titled "CHARACTERS" with:
-1. Main protagonist (name, detailed description, motivation, arc)
-2. Main antagonist (name, detailed description, motivation)
-3. Supporting characters (name, role, connection to protagonist)
-
-Also create a section titled "RECURRING MOTIFS" with 3-5 symbols, objects, or phrases that will recur throughout the story to provide thematic continuity.
-
-The outline should have a clear beginning (chapters 1-2), middle (chapters 3 to {self.num_chapters-2}), and end (final {min(2, self.num_chapters-2)} chapters).
-Ensure proper rising action, climax, and resolution structure.
-
-For the climax chapters (chapters {self.num_chapters-2} and {self.num_chapters-1}), provide extra detail about:
-1. How the final confrontation unfolds
-2. What's at stake for each character
-3. Specific steps in the resolution
-
-Make sure all character names, settings, and plot elements remain 100% consistent throughout.
-"""
-        print("Generating detailed story outline...")
+        print("----------------- Generating detailed story outline... ----------------- \n")
         self.story_outline = self.generate_text(prompt, system_prompt)
+        print(f"-----------------  Generated story outline:\n {self.story_outline} ----------------- \n")
+
+        if self.story_outline is None:
+            print("Failed to generate story outline. Aborting.")
+            # end the script for CLI version
+            # or return None for GUI version
+            # or raise an exception
+            # depending on the context of usage
+            # For CLI version, we can simply exit the script
+            import sys
+            sys.exit(1)
+            # For GUI version, we can just return None or raise an exception
+            # return None # or raise an exception
 
         # Extract character information
-        char_prompt = f"""Based on this story outline, create a detailed character guide:
+        story_outline = self.story_outline.replace("\n", " ")
 
-{self.story_outline}
+        # Load the character prompt from the JSON file
+        char_prompt = self.language_settings["char_prompt"].format(
+             story_outline=story_outline
+        )
 
-For EACH character, format as:
-CHARACTER NAME: Brief description, role in story, key personality traits, motivation, background
-
-Include EVERY character mentioned in the outline, even minor ones.
-"""
-        print("Creating detailed character profiles...")
+        print(f"----------------- Creating detailed character profiles... ----------------- \n")
+            
         character_text = self.generate_text(char_prompt, system_prompt)
-        self.characters = self.extract_characters(character_text)
-
+        
+        if character_text:
+            # Extract characters from the generated text
+            print(f"----------------- Character text: {character_text} ----------------- \n")
+            self.characters = self.extract_characters(character_text)
+        else:
+            self.characters = {}
+            print("Failed to generate character profiles. Aborting.")
+            # end the script for CLI version
+            import sys
+            sys.exit(1)
+            # or return None for GUI version
+            # or raise an exception
+        
+        if self.characters and isinstance(self.characters, dict) and len(self.characters) > 0:
+            print("----------------- Extracted characters: -----------------")
+            for character_name, character_data in self.characters.items():
+                print(f"- {character_name}: {character_data['description']}")
+            print("---------------------------------------------------------\n")
+        else:
+            print("----------------- No characters were extracted. ----------------- \n")
         # Extract world name for consistency
         self.world_name = self.extract_world_name(self.story_outline)
         
         # If no world name was found, ask the LLM to create one
         if not self.world_name:
-            world_prompt = f"""Based on this story outline, create a unique and memorable name for the main world/city/setting:
-
-{self.story_outline}
-
-The name should be a single term, creative, and fitting the tone of the story.
-Reply with ONLY the world name, nothing else.
-"""
+            world_prompt = self.language_settings["world_prompt"].format(
+                story_outline=self.story_outline
+            )
+            print("Generating world name...")
             self.world_name = self.generate_text(world_prompt).strip()
-            print(f"Generated world name: {self.world_name}")
+            print(f"----------------- Generated world name: {self.world_name} ----------------- \n")
 
-        # Extract recurring motifs
-        motif_prompt = f"""Based on this story outline, identify 3-5 recurring motifs, symbols, or objects that appear throughout the story:
-
-{self.story_outline}
-
-Format as a simple list of items, one per line.
-These should be concrete objects, symbols, or phrases that can recur throughout chapters.
-"""
-        print("Identifying recurring motifs...")
+        print(f"----------------- World name: {self.world_name} -----------------\n")
+        
+        # Extract recurring motifs 
+        motif_prompt = self.language_settings["motif_prompt"].format(
+            story_outline=self.story_outline
+        )
+        print("----------------- Identifying recurring motifs... -----------------")
         motifs_text = self.generate_text(motif_prompt)
         self.recurring_motifs = [motif.strip() for motif in motifs_text.strip().split('\n') if motif.strip()]
-        print(f"Identified motifs: {', '.join(self.recurring_motifs)}")
+        print("----------------- Identified motifs: -----------------")
+        for motif in self.recurring_motifs:
+            print(f"- {motif}")
+        print("---------------------------------------------------------\n")
 
         # Create detailed chapter-by-chapter plan
-        chapter_plan_prompt = f"""Based on the story outline, create a VERY detailed chapter-by-chapter plan.
-
-STORY OUTLINE: {self.story_outline}
-
-For EACH chapter (1 through {self.num_chapters}), provide:
-1. Chapter title
-2. Chapter summary (250-300 words)
-3. Scene breakdown (list each scene with location and characters present)
-4. Character development in this chapter
-5. Plot advancement in this chapter
-6. Timeline indicators (time of day, date, or how much time has passed since previous chapter)
-7. Emotional tone and tension level (1-10) at the end of the chapter
-8. How this chapter connects to the next (create a narrative bridge)
-
-Be extremely specific and detailed. This plan will be used to ensure narrative consistency.
-"""
-        print("Creating detailed chapter plan...")
+        chapter_plan_prompt = self.language_settings["motif_prompt"].format(
+            story_outline=self.story_outline, 
+            num_chapters=self.num_chapters
+        )
+        
+        print("----------------- Creating detailed chapter plan... ----------------- \n")
         self.chapter_plan = self.generate_text(chapter_plan_prompt, system_prompt)
 
     def create_chapter_summary(self, chapter_num, chapter_content):
@@ -537,7 +811,7 @@ Fix all inconsistencies while preserving the core narrative."""
             if data["first_appearance"] > 0:  # Only include characters who have appeared
                 status = data["status"]
                 first_app = data["first_appearance"]
-                dev = "; ".join([d["development"] for d in data["development"]])
+                dev = "; ".join(data["development"]) if isinstance(data["development"], list) else data["development"]
                 character_status += f"{name}: First appeared in Chapter {first_app}, Status: {status}, Development: {dev}\n"
 
         # Add timeline information
@@ -802,25 +1076,31 @@ Format the chapter with proper paragraph structure and dialogue formatting. Star
         return self.compile_book()
 
     def compile_book(self):
-        """Compile all chapters into a complete book"""
-        title_prompt = f"""Create a compelling title for a book with the following premise and chapters:
-
-Premise: {self.story_premise}
-
-Chapter summaries:
-{self.story_outline}
-"""
+        """Compile all chapters into a complete book""" 
+        #
+        title_prompt = self.language_settings["title_prompt"].format(
+            story_premise=self.story_premise,
+            story_outline=self.story_outline
+        )
+    
         book_title = self.generate_text(title_prompt)
         book = f"# {book_title}\n\n"
         book += f"## Story Premise\n\n{self.story_premise}\n\n"
-
+    
         for i, chapter in enumerate(self.chapters, 1):
             book += f"{chapter}\n\n"
-
+    
         return book
 
-    def save_book(self, book_content, filename="generated_book.md"):
+    def save_book(self, book_content, filename="./output/generated_book.md"):
         """Save the generated book to a file"""
+        # append data time to the file name before the extension
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = filename.replace(".md", f"_{timestamp}.md")
+        # check if the directory exist if not make one
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
+        # Save the book content to a markdown file
         with open(filename, "w", encoding="utf-8") as f:
             f.write(book_content)
         print(f"Book saved as {filename}")
@@ -835,28 +1115,56 @@ Chapter summaries:
             "timeline": self.timeline,
             "emotional_arc": self.emotional_arc,
         }
-
-        with open("book_metadata.json", "w", encoding="utf-8") as f:
+        # Save metadata to a JSON file
+        metadata_filename = filename.replace(".md", "_metadata.json")
+        with open(metadata_filename, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2)
-        print("Book metadata saved as book_metadata.json")
+        print(f"Book metadata saved as {metadata_filename}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a book using a language model.")
+    # model (gemma3:12b, gemma3:27b, llama3:7b, llama3:13b, mistral:7b, etc.)
     parser.add_argument("--model", type=str, default="gemma3:12b", help="The language model to use.")
-    parser.add_argument("--synopsis", type=str, default=None, help="The story synopsis. If omitted, it will be requested in the console.")
+    parser.add_argument("--synopsis", type=str, default="./premise.txt", help="The story synopsis. If omitted, it will be requested in the console.")
     parser.add_argument("--ollama_url", type=str, default="http://localhost:11434", help="The URL of the Ollama API.")
+    parser.add_argument("--chapters", type=int, default="3", help="How many chapters would you like (Default3)")
+    # language (it, en,fr,es)
+    parser.add_argument("--language", type=str, default="en", help="Language of the book (default: en)")
+    # genre (fantasy, sci-fi, romance, etc.)    
+    parser.add_argument("--genre", type=str, default="fantasy", help="Genre of the book (default: fantasy)")
+    # audience target (adult, young adult, children, womaen, romantic, erotic, etc.)
+    parser.add_argument("--audience", type=str, default="adult", help="Target audience for the book (default: adult)")
+    # tone (dark, light, serious, humorous, etc.)
+    parser.add_argument("--tone", type=str, default="light", help="Tone of the book (default: light)")
+    # style (first person, third person, etc.)
+    parser.add_argument("--style", type=str, default="third person", help="Narrative style of the book (default: third person)")
+    # setting (historical, modern, futuristic, etc.)
+    parser.add_argument("--setting", type=str, default="modern", help="Setting of the book (default: modern)")
+    # themes (love, friendship, betrayal, etc.)
+    parser.add_argument("--themes", type=str, default="love", help="Themes of the book (default: love)")
+    # character names (crealistic, fictionary, anagrams, etc.)
+    parser.add_argument("--names", type=str, default="realistic", help="Character names style (default: realistic)")
+    # output file name
+    parser.add_argument("--output", type=str, default="./output/generated_book.md", help="Output file name (default: ./output/generated_book.md)")
 
     args = parser.parse_args()
 
-    generator = BookGenerator()
-    generator.model = args.model  # Override default model
-    generator.base_url = args.ollama_url # Override the default ollama url
-
-    if args.synopsis:
-        generator.story_premise = args.synopsis
-    else:
-        generator.get_user_input()  # This will prompt for synopsis if not provided
+    generator = BookGenerator(
+        model=args.model,
+        base_url=args.ollama_url,
+        story_premise=args.synopsis,
+        num_chapters=args.chapters,
+        language=args.language,
+        genre=args.genre,
+        audience=args.audience,
+        tone=args.tone,
+        style=args.style,
+        setting=args.setting,
+        themes=args.themes,
+        names=args.names,
+    )
 
     book = generator.generate_book()
-    generator.save_book(book)
+
+    generator.save_book(book, filename=args.output)

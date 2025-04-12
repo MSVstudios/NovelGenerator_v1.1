@@ -3,4 +3,6 @@ pathlib>=1.0.1
 dataclasses>=0.6
 typing>=3.7.4
 python-dateutil>=2.8.2
-logging>=0.5.1.2
+logging>=0.4.9.6
+anthropic>=0.49.0
+openai>=1.26.0
