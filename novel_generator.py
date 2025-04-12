@@ -1,3 +1,4 @@
+import argparse
 import requests
 import json
 import time
@@ -8,7 +9,7 @@ import re
 class BookGenerator:
     def __init__(self):
         self.base_url = "http://localhost:11434/api/generate"
-        self.model = "gemma2:27b"
+        self.model = "gemma3:12b"
         self.story_premise = ""
         self.num_chapters = 0
         self.story_outline = ""
@@ -27,16 +28,17 @@ class BookGenerator:
     def get_user_input(self):
         """Get the story premise and number of chapters from the user"""
         print(
-            """
+            f"""
 ──────────────────────────────────────────────────────────────────────────────────
                       N O V E L   G E N E R A T O R   2 . 5
 ──────────────────────────────────────────────────────────────────────────────────
-ENGINE: Running on Ollama with gemma2:27b
+ENGINE: Running on Ollama with {self.model}
 CAPABILITIES: Creates novels or fanfiction with consistency checks
 GENERATION TIME: Up to an hour depending on computational resources
 STORY INPUT: One paragraph up to 830 characters with your plot idea
 """
         )
+        
         self.story_premise = input("Please provide a paragraph about what your story is about: ")
 
         while True:
@@ -59,7 +61,7 @@ STORY INPUT: One paragraph up to 830 characters with your plot idea
         }
 
         try:
-            response = requests.post(self.base_url, json=data)
+            response = requests.post(self.base_url, json=data, timeout=10)
             response.raise_for_status()
             return response.json()["response"]
         except requests.exceptions.RequestException as e:
@@ -840,6 +842,21 @@ Chapter summaries:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate a book using a language model.")
+    parser.add_argument("--model", type=str, default="gemma3:12b", help="The language model to use.")
+    parser.add_argument("--synopsis", type=str, default=None, help="The story synopsis. If omitted, it will be requested in the console.")
+    parser.add_argument("--ollama_url", type=str, default="http://localhost:11434", help="The URL of the Ollama API.")
+
+    args = parser.parse_args()
+
     generator = BookGenerator()
+    generator.model = args.model  # Override default model
+    generator.base_url = args.ollama_url # Override the default ollama url
+
+    if args.synopsis:
+        generator.story_premise = args.synopsis
+    else:
+        generator.get_user_input()  # This will prompt for synopsis if not provided
+
     book = generator.generate_book()
     generator.save_book(book)

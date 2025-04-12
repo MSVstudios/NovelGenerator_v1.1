@@ -36,6 +36,19 @@ The separate `story_idea_generation.py` script employs a distributed architectur
 ```bash
 git clone https://github.com/KazKozDev/NovelGenerator.git
 cd NovelGenerator
+```
+
+install a virrtual env
+```bash
+python -m venv .venv
+# for linux
+TODO
+# for win
+.venv\Scripts\activate
+```
+
+
+```bash
 pip install -r requirements.txt
 ```
 
@@ -45,6 +58,13 @@ pip install -r requirements.txt
 ```bash
 ollama serve
 ```
+explain argument here
+--model (you llm model in olama) defualt [gemma3:27b]
+--synopsis text reference [if omioted prompt will ask in console]
+--ollama _url [http://localhost:11434]
+
+
+
 2. Run generator:
 ```bash
 python novel_generator.py
